@@ -74,11 +74,18 @@ int BethYw::run(int argc, char *argv[])
 	std::string dir = args["dir"].as<std::string>() + DIR_SEP;
 
 	// Parse other arguments and import data
-	auto datasetsToImport = BethYw::parseDatasetsArg(args);
-	auto areasFilter = BethYw::parseAreasArg(args);
-	auto measuresFilter = BethYw::parseMeasuresArg(args);
-	auto yearsFilter = BethYw::parseYearsArg(args);
-
+	try
+	{
+		auto datasetsToImport = BethYw::parseDatasetsArg(args);
+		auto areasFilter = BethYw::parseAreasArg(args);
+		auto measuresFilter = BethYw::parseMeasuresArg(args);
+		auto yearsFilter = BethYw::parseYearsArg(args);
+	}
+	catch (const std::invalid_argument &e)
+	{
+		std::cerr << e.what() << std::endl;
+		return 1;
+	}
 	Areas data = Areas();
 
 	// BethYw::loadAreas(data, dir, areasFilter);
@@ -239,10 +246,10 @@ std::vector<BethYw::InputFileSource> BethYw::parseDatasetsArg(
 			}
 		}
 
-		// If not valid throw an exception
+		// If invalid dataset, throw an exception
 		if (not_found)
 		{
-			throw std::invalid_argument("No dataset matches key: invalid");
+			throw std::invalid_argument("No dataset matches key: " + inputDatasets[i]);
 		}
 	}
 
@@ -386,28 +393,21 @@ std::tuple<unsigned int, unsigned int> BethYw::parseYearsArg(
 	cxxopts::ParseResult &args)
 {
 	auto inputYears = args["years"].as<std::string>();
-	try
-	{
-		// stoi will throw an invalid argument exception if it cant convert
 
-		if (inputYears.size() == 4)
-		{
-			return std::make_tuple(stoi(inputYears), stoi(inputYears));
-		}
-		else if (inputYears.size() == 9 && inputYears[4] == '-')
-		{
-			return std::make_tuple(stoi(inputYears.substr(0, 4)), stoi(inputYears.substr(5, 9)));
-		}
-		else if ((inputYears == "0") || (inputYears == "0-0"))
-		{
-			return std::make_tuple(0, 0);
-		}
-		else
-		{
-			throw std::invalid_argument("");
-		}
+	// stoi will throw an invalid argument exception if it cant convert
+	if (inputYears.size() == 4)
+	{
+		return std::make_tuple(stoi(inputYears), stoi(inputYears));
 	}
-	catch (const std::invalid_argument &e)
+	else if (inputYears.size() == 9 && inputYears[4] == '-')
+	{
+		return std::make_tuple(stoi(inputYears.substr(0, 4)), stoi(inputYears.substr(5, 9)));
+	}
+	else if ((inputYears == "0") || (inputYears == "0-0"))
+	{
+		return std::make_tuple(0, 0);
+	}
+	else
 	{
 		throw std::invalid_argument("Invalid input for years argument");
 	}
