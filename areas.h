@@ -51,10 +51,8 @@ using YearFilterTuple = std::tuple<unsigned int, unsigned int>;
   TODO: you should remove the declaration of the Null class below, and set
   AreasContainer to a valid Standard Library container of your choosing.
 */
-class Null
-{
-};
-using AreasContainer = Null;
+
+using AreasContainer = std::unordered_map<std::string, Area>;
 
 /*
   Areas is a class that stores all the data categorised by area. The
@@ -72,8 +70,12 @@ using AreasContainer = Null;
 */
 class Areas
 {
+private:
+	AreasContainer container;
+
 public:
 	Areas();
+	void setArea(const std::string &localAuthorityCode, Area &area);
 
 	void populateFromAuthorityCodeCSV(
 		std::istream &is,

@@ -36,6 +36,12 @@
 */
 class InputSource
 {
+public:
+	const std::string &getSource();
+
+private:
+	const std::string &source;
+
 protected:
 	InputSource(const std::string &source);
 };
@@ -50,8 +56,10 @@ protected:
 */
 class InputFile : public InputSource
 {
+
 public:
 	InputFile(const std::string &filePath);
+	std::istream &open();
 };
 
 #endif // INPUT_H_

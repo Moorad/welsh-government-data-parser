@@ -10,11 +10,13 @@
 
   This file contains the decalaration of the Measure class.
 
-  TODO: Read the block comments with TODO in measure.cpp to know which 
+  TODO: Read the block comments with TODO in measure.cpp to know which
   functions and member variables you need to declare in this class.
  */
 
 #include <string>
+#include <map>
+#include <vector>
 
 /*
   The Measure class contains a measure code, label, and a container for readings
@@ -24,8 +26,30 @@
   or functions you implement here, and perhaps additional operators you may wish
   to overload.
 */
-class Measure {
-  Measure(std::string code, const std::string &label);
+class Measure
+{
+private:
+	std::string codename;
+	std::string label;
+	std::map<int, double> values;
+
+public:
+	Measure(std::string code, const std::string &label);
+	const std::string &getCodename() const noexcept;
+
+	const std::string &getLabel() const noexcept;
+	void setLabel(const std::string &label);
+
+	const double getValue(const int key) const;
+	void setValue(int year, double value);
+
+	const int size() const noexcept;
+	const double getDifference() const noexcept;
+	const double getDifferenceAsPercentage() const noexcept;
+	const double getAverage() const noexcept;
+
+	const std::vector<int> getYears() const noexcept;
 };
 
+bool operator==(const Measure &m1, const Measure &m2);
 #endif // MEASURE_H_

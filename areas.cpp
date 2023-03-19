@@ -43,10 +43,7 @@ using json = nlohmann::json;
   @example
 	Areas data = Areas();
 */
-Areas::Areas()
-{
-	throw std::logic_error("Areas::Areas() has not been implemented!");
-}
+Areas::Areas() {}
 
 /*
   TODO: Areas::setArea(localAuthorityCode, area)
@@ -73,6 +70,20 @@ Areas::Areas()
 	Area area(localAuthorityCode);
 	data.setArea(localAuthorityCode, area);
 */
+void Areas::setArea(const std::string &localAuthorityCode, Area &area)
+{
+
+	if (this->container.find(localAuthorityCode) != this->container.end())
+	{
+		// language exist, reassign
+		// this->container[localAuthorityCode] = area;
+	}
+	else
+	{
+		// language does not exist, insert
+		this->container.insert(std::make_pair(localAuthorityCode, area));
+	}
+}
 
 /*
   TODO: Areas::getArea(localAuthorityCode)

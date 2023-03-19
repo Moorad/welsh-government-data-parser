@@ -41,10 +41,7 @@
 	std::string label = "Population";
 	Measure measure(codename, label);
 */
-Measure::Measure(std::string codename, const std::string &label)
-{
-	throw std::logic_error("Measure::Measure() has not been implemented!");
-}
+Measure::Measure(std::string codename, const std::string &label) : codename(codename), label(label) {}
 
 /*
   TODO: Measure::getCodename()
@@ -65,6 +62,10 @@ Measure::Measure(std::string codename, const std::string &label)
 	...
 	auto codename2 = measure.getCodename();
 */
+const std::string &Measure::getCodename() const noexcept
+{
+	return this->codename;
+}
 
 /*
   TODO: Measure::getLabel()
@@ -86,6 +87,11 @@ Measure::Measure(std::string codename, const std::string &label)
 	auto label = measure.getLabel();
 */
 
+const std::string &Measure::getLabel() const noexcept
+{
+	return this->label;
+}
+
 /*
   TODO: Measure::setLabel(label)
 
@@ -100,7 +106,10 @@ Measure::Measure(std::string codename, const std::string &label)
 	...
 	measure.setLabel("New Population");
 */
-
+void Measure::setLabel(const std::string &label)
+{
+	this->label = label;
+}
 /*
   TODO: Measure::getValue(key)
 
@@ -128,6 +137,20 @@ Measure::Measure(std::string codename, const std::string &label)
 	...
 	auto value = measure.getValue(1999); // returns 12345678.9
 */
+const double Measure::getValue(const int key) const
+{
+	auto element = this->values.find(key);
+
+	// Return measure if found
+	if (element != this->values.end())
+	{
+		return element->second;
+	}
+	else
+	{
+		throw std::out_of_range("No value found for year " + key);
+	}
+}
 
 /*
   TODO: Measure::setValue(key, value)
@@ -152,6 +175,21 @@ Measure::Measure(std::string codename, const std::string &label)
 	measure.setValue(1999, 12345678.9);
 */
 
+void Measure::setValue(int year, double value)
+{
+
+	if (this->values.find(year) != this->values.end())
+	{
+		// language exist, reassign
+		this->values[year] = value;
+	}
+	else
+	{
+		// language does not exist, insert
+		this->values.insert(std::make_pair(year, value));
+	}
+}
+
 /*
   TODO: Measure::size()
 
@@ -170,6 +208,10 @@ Measure::Measure(std::string codename, const std::string &label)
 	measure.setValue(1999, 12345678.9);
 	auto size = measure.size(); // returns 1
 */
+const int Measure::size() const noexcept
+{
+	return this->values.size();
+}
 
 /*
   TODO: Measure::getDifference()
@@ -188,6 +230,13 @@ Measure::Measure(std::string codename, const std::string &label)
 	measure.setValue(2001, 12345679.9);
 	auto diff = measure.getDifference(); // returns 1.0
 */
+const double Measure::getDifference() const noexcept
+{
+	double first_year = this->values.begin()->second;
+	double last_year = this->values.end()->second;
+
+	return last_year - first_year;
+}
 
 /*
   TODO: Measure::getDifferenceAsPercentage()
@@ -206,6 +255,13 @@ Measure::Measure(std::string codename, const std::string &label)
 	measure.setValue(2010, 12345679.9);
 	auto diff = measure.getDifferenceAsPercentage();
 */
+const double Measure::getDifferenceAsPercentage() const noexcept
+{
+	double first_year = this->values.begin()->second;
+	double last_year = this->values.end()->second;
+
+	return (last_year / first_year) * 100;
+}
 
 /*
   TODO: Measure::getAverage()
@@ -223,6 +279,29 @@ Measure::Measure(std::string codename, const std::string &label)
 	measure.setValue(2001, 12345679.9);
 	auto diff = measure.getAverage(); // returns 12345678.4
 */
+const double Measure::getAverage() const noexcept
+{
+	double sum = 0;
+	for (auto it = this->values.begin(); it != this->values.end(); it++)
+	{
+		sum += it->second;
+	}
+
+	return sum / this->size();
+}
+
+// getYears will display the list of all the years in the container.
+// Used for comparing maps
+const std::vector<int> Measure::getYears() const noexcept
+{
+	std::vector<int> keys;
+	for (auto it = this->values.begin(); it != this->values.end(); ++it)
+	{
+		keys.push_back(it->first);
+	}
+
+	return keys;
+}
 
 /*
   TODO: operator<<(os, measure)
@@ -277,3 +356,29 @@ Measure::Measure(std::string codename, const std::string &label)
 	true if both Measure objects have the same codename, label and data; false
 	otherwise
 */
+bool operator==(const Measure &m1, const Measure &m2)
+{
+	if (m1.getCodename() != m2.getCodename() ||
+		m1.getLabel() != m2.getLabel() ||
+		m1.size() != m2.size())
+	{
+		return false;
+	}
+
+	for (auto it = m1.getYears().begin(); it != m1.getYears().end(); it++)
+	{
+		try
+		{
+			if (m1.getValue(*it) != m2.getValue(*it))
+			{
+				return false;
+			}
+		}
+		catch (std::out_of_range &e)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}

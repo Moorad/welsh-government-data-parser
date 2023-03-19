@@ -80,32 +80,43 @@ int BethYw::run(int argc, char *argv[])
 		auto areasFilter = BethYw::parseAreasArg(args);
 		auto measuresFilter = BethYw::parseMeasuresArg(args);
 		auto yearsFilter = BethYw::parseYearsArg(args);
+
+		Areas data = Areas();
+
+		// BethYw::loadAreas(data, dir, areasFilter);
+		//
+		// BethYw::loadDatasets(data,
+		//                      dir,
+		//                      datasetsToImport,
+		//                      areasFilter,
+		//                      measuresFilter,
+		//                      yearsFilter);
+
+		if (args.count("json"))
+		{
+			// The output as JSON
+			std::cout << data.toJSON() << std::endl;
+		}
+		else
+		{
+			// The output as tables
+			// std::cout << data << std::endl;
+		}
 	}
 	catch (const std::invalid_argument &e)
 	{
 		std::cerr << e.what() << std::endl;
 		return 1;
 	}
-	Areas data = Areas();
-
-	// BethYw::loadAreas(data, dir, areasFilter);
-	//
-	// BethYw::loadDatasets(data,
-	//                      dir,
-	//                      datasetsToImport,
-	//                      areasFilter,
-	//                      measuresFilter,
-	//                      yearsFilter);
-
-	if (args.count("json"))
+	catch (const std::runtime_error &e)
 	{
-		// The output as JSON
-		std::cout << data.toJSON() << std::endl;
+		std::cerr << e.what() << std::endl;
+		return 1;
 	}
-	else
+	catch (const std::out_of_range &e)
 	{
-		// The output as tables
-		// std::cout << data << std::endl;
+		std::cerr << e.what() << std::endl;
+		return 1;
 	}
 
 	return 0;
