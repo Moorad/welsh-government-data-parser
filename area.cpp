@@ -77,7 +77,7 @@ const std::string &Area::getLocalAuthorityCode() const
 	...
 	auto name = area.getName(langCode);
 */
-const std::string &Area::getName(const std::string &lang)
+const std::string &Area::getName(const std::string &lang) const
 {
 	for (auto it = this->names.begin(); it != this->names.end(); ++it)
 	{
@@ -138,6 +138,7 @@ void Area::setName(std::string lang, const std::string name)
 		if (strcasecmp(it->first.c_str(), lang.c_str()) == 0)
 		{
 			this->names[lang] = name;
+			return;
 		}
 	}
 
@@ -169,7 +170,7 @@ void Area::setName(std::string lang, const std::string name)
 	...
 	auto measure2 = area.getMeasure("pop");
 */
-Measure &Area::getMeasure(const std::string &key)
+const Measure &Area::getMeasure(const std::string &key) const
 {
 	for (auto it = this->measures.begin(); it != this->measures.end(); ++it)
 	{
@@ -214,7 +215,7 @@ Measure &Area::getMeasure(const std::string &key)
 
 	area.setMeasure(codename, measure);
 */
-void Area::setMeasure(const std::string &codename, Measure &measure)
+void Area::setMeasure(const std::string &codename, Measure measure)
 {
 
 	for (auto it = this->measures.begin(); it != this->measures.end(); ++it)
@@ -264,6 +265,28 @@ void Area::setMeasure(const std::string &codename, Measure &measure)
 const int Area::size() const
 {
 	return this->measures.size();
+}
+
+const std::vector<std::string> Area::getNames() const noexcept
+{
+	std::vector<std::string> keys;
+	for (auto it = this->names.begin(); it != this->names.end(); ++it)
+	{
+		keys.push_back(it->first);
+	}
+
+	return keys;
+}
+
+const std::vector<std::string> Area::getMeasures() const noexcept
+{
+	std::vector<std::string> keys;
+	for (auto it = this->measures.begin(); it != this->measures.end(); ++it)
+	{
+		keys.push_back(it->first);
+	}
+
+	return keys;
 }
 
 /*
@@ -321,3 +344,45 @@ const int Area::size() const
 
 	bool eq = area1 == area2;
 */
+bool operator==(const Area &a1, const Area &a2)
+{
+	if (a1.getLocalAuthorityCode() != a2.getLocalAuthorityCode() ||
+		a1.size() != a2.size())
+	{
+		return false;
+	}
+
+	std::vector<std::string> names = a1.getNames();
+	for (unsigned int i = 0; i < names.size(); i++)
+	{
+		try
+		{
+			if (a1.getName(names[i]) != a2.getName(names[i]))
+			{
+				return false;
+			}
+		}
+		catch (std::out_of_range &e)
+		{
+			return false;
+		}
+	}
+
+	std::vector<std::string> measures = a1.getMeasures();
+	for (unsigned int i = 0; i < measures.size(); i++)
+	{
+		try
+		{
+			if (!(a1.getMeasure(measures[i]) == a2.getMeasure(measures[i])))
+			{
+				return false;
+			}
+		}
+		catch (std::out_of_range &e)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}

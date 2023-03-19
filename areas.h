@@ -75,7 +75,10 @@ private:
 
 public:
 	Areas();
-	void setArea(const std::string &localAuthorityCode, Area &area);
+	void setArea(const std::string &localAuthorityCode, Area area);
+	Area &getArea(const std::string &localAuthorityCode);
+
+	const int size() const;
 
 	void populateFromAuthorityCodeCSV(
 		std::istream &is,

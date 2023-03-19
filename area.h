@@ -41,13 +41,18 @@ public:
 	Area(const std::string &localAuthorityCode);
 	const std::string &getLocalAuthorityCode() const;
 
-	const std::string &getName(const std::string &lang);
+	const std::string &getName(const std::string &lang) const;
 	void setName(std::string lang, const std::string name);
 
-	Measure &getMeasure(const std::string &key);
-	void setMeasure(const std::string &codename, Measure &measure);
+	const Measure &getMeasure(const std::string &key) const;
+	void setMeasure(const std::string &codename, Measure measure);
+
+	const std::vector<std::string> getNames() const noexcept;
+	const std::vector<std::string> getMeasures() const noexcept;
 
 	const int size() const;
 };
+
+bool operator==(const Area &a1, const Area &a2);
 
 #endif // AREA_H_

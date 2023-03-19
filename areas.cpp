@@ -70,19 +70,34 @@ Areas::Areas() {}
 	Area area(localAuthorityCode);
 	data.setArea(localAuthorityCode, area);
 */
-void Areas::setArea(const std::string &localAuthorityCode, Area &area)
+void Areas::setArea(const std::string &localAuthorityCode, Area area)
 {
 
-	if (this->container.find(localAuthorityCode) != this->container.end())
+	for (auto it = this->container.begin(); it != this->container.end(); ++it)
 	{
-		// language exist, reassign
-		// this->container[localAuthorityCode] = area;
+		if (strcasecmp(it->first.c_str(), localAuthorityCode.c_str()) == 0)
+		{
+			// for (::const_iterator nit = area.getNames().begin(); nit != area.getNames().end(); ++nit)
+			// {
+			// 	it->second.setName(*nit, area.getName(*nit));
+			// }
+			std::vector<std::string> names = area.getNames();
+			for (unsigned int i = 0; i < names.size(); i++)
+			{
+				it->second.setName(names[i], area.getName(names[i]));
+			}
+
+			std::vector<std::string> measures = area.getMeasures();
+			for (unsigned int i = 0; i < measures.size(); i++)
+			{
+				it->second.setMeasure(measures[i], area.getMeasure(measures[i]));
+			}
+
+			return;
+		}
 	}
-	else
-	{
-		// language does not exist, insert
-		this->container.insert(std::make_pair(localAuthorityCode, area));
-	}
+
+	this->container.insert(std::make_pair(localAuthorityCode, area));
 }
 
 /*
@@ -108,6 +123,18 @@ void Areas::setArea(const std::string &localAuthorityCode, Area &area)
 	...
 	Area area2 = areas.getArea("W06000023");
 */
+Area &Areas::getArea(const std::string &localAuthorityCode)
+{
+	for (auto it = this->container.begin(); it != this->container.end(); ++it)
+	{
+		if (strcmp(it->first.c_str(), localAuthorityCode.c_str()) == 0)
+		{
+			return it->second;
+		}
+	}
+
+	throw std::out_of_range("No area found matching " + localAuthorityCode);
+}
 
 /*
   TODO: Areas::size()
@@ -127,7 +154,10 @@ void Areas::setArea(const std::string &localAuthorityCode, Area &area)
 
 	auto size = areas.size(); // returns 1
 */
-
+const int Areas::size() const
+{
+	return this->container.size();
+}
 /*
   TODO: Areas::populateFromAuthorityCodeCSV(is, cols, areasFilter)
 
