@@ -214,8 +214,21 @@ void Areas::populateFromAuthorityCodeCSV(
 	const BethYw::SourceColumnMapping &cols,
 	const StringFilterSet *const areasFilter)
 {
-	throw std::logic_error(
-		"Areas::populateFromAuthorityCodeCSV() has not been implemented!");
+	std::string line;
+	std::getline(is, line);
+	for (int i = 0; i < 10; i++)
+	{
+		std::getline(is, line);
+		std::cout << line << std::endl;
+
+		std::string data;
+		for (int i = 0; i < 3; i++)
+		{
+			data = line.substr(0, line.find(","));
+			std::cout << data << std::endl;
+			line.erase(0, line.find(",") + 1);
+		}
+	}
 }
 
 /*
