@@ -41,7 +41,7 @@
 	std::string label = "Population";
 	Measure measure(codename, label);
 */
-Measure::Measure(std::string codename, const std::string &label) : codename(codename), label(label) {}
+Measure::Measure(std::string codename, const std::string label) : codename(codename), label(label) {}
 
 /*
   TODO: Measure::getCodename()
@@ -106,7 +106,7 @@ const std::string &Measure::getLabel() const noexcept
 	...
 	measure.setLabel("New Population");
 */
-void Measure::setLabel(const std::string &label)
+void Measure::setLabel(const std::string label)
 {
 	this->label = label;
 }
@@ -146,10 +146,8 @@ const double Measure::getValue(const int key) const
 	{
 		return element->second;
 	}
-	else
-	{
-		throw std::out_of_range("No value found for year " + key);
-	}
+
+	throw std::out_of_range("No value found for year " + std::to_string(key));
 }
 
 /*

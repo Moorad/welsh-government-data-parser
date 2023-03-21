@@ -40,10 +40,10 @@ public:
 	const std::string &getSource();
 
 private:
-	const std::string &source;
+	const std::string source;
 
 protected:
-	InputSource(const std::string &source);
+	InputSource(const std::string source);
 };
 
 /*

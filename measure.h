@@ -34,11 +34,11 @@ private:
 	std::map<int, double> values;
 
 public:
-	Measure(std::string code, const std::string &label);
+	Measure(std::string code, const std::string label);
 	const std::string &getCodename() const noexcept;
 
 	const std::string &getLabel() const noexcept;
-	void setLabel(const std::string &label);
+	void setLabel(const std::string label);
 
 	const double getValue(const int key) const;
 	void setValue(int year, double value);

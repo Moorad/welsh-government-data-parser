@@ -18,6 +18,7 @@
 #include <string>
 #include <unordered_set>
 #include <vector>
+#include "areas.h"
 
 #include "lib_cxxopts.hpp"
 
@@ -62,6 +63,15 @@ namespace BethYw
 	std::unordered_set<std::string> parseAreasArg(cxxopts::ParseResult &args);
 	std::unordered_set<std::string> parseMeasuresArg(cxxopts::ParseResult &args);
 	std::tuple<unsigned int, unsigned int> parseYearsArg(cxxopts::ParseResult &args);
+
+	void loadAreas(Areas &areas, std::string dir, const StringFilterSet *const areasFilter);
+
+	// void loadDatasets(Areas &data,
+	// 				  std::string dir,
+	// 				  const StringFilterSet *const datasetsToImport,
+	// 				  const StringFilterSet *const areasFilter,
+	// 				  const StringFilterSet *const measuresFilter,
+	// 				  const YearFilterTuple *const yearsFilter) noexcept;
 
 } // namespace BethYw
 

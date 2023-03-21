@@ -83,14 +83,15 @@ int BethYw::run(int argc, char *argv[])
 
 		Areas data = Areas();
 
-		// BethYw::loadAreas(data, dir, areasFilter);
-		//
+		BethYw::loadAreas(data, dir, &areasFilter);
+
+		std::cout << data.size() << std::endl;
 		// BethYw::loadDatasets(data,
-		//                      dir,
-		//                      datasetsToImport,
-		//                      areasFilter,
-		//                      measuresFilter,
-		//                      yearsFilter);
+		// 					 dir,
+		// 					 &datasetsToImport,
+		// 					 &areasFilter,
+		// 					 &measuresFilter,
+		// 					 &yearsFilter);
 
 		if (args.count("json"))
 		{
@@ -458,7 +459,25 @@ std::tuple<unsigned int, unsigned int> BethYw::parseYearsArg(
 
 	BethYw::loadAreas(areas, "data", BethYw::parseAreasArg(args));
 */
+void BethYw::loadAreas(Areas &areas, std::string dir, const StringFilterSet *const areasFilter)
+{
+	std::size_t fileExtension = dir.find_last_of(".");
+	std::string directory = dir.substr(0, fileExtension) + "/";
 
+	InputFile inputf(directory + InputFiles::AREAS.FILE);
+
+	try
+	{
+		std::istream &is = inputf.open();
+
+		areas.populate(is, BethYw::AuthorityCodeCSV, BethYw::InputFiles::AREAS.COLS, areasFilter, nullptr, nullptr);
+	}
+	catch (std::runtime_error &e)
+	{
+		std::cerr << "Error importing dataset:" << std::endl;
+		std::cerr << e.what() << std::endl;
+	}
+}
 /*
   TODO: BethYw::loadDatasets(areas,
 							 dir,
@@ -513,6 +532,25 @@ std::tuple<unsigned int, unsigned int> BethYw::parseYearsArg(
 	  BethYw::parseMeasuresArg(args),
 	  BethYw::parseYearsArg(args));
 */
+// void BethYw::loadDatasets(Areas &data,
+// 						  std::string dir,
+// 						  std::vector<BethYw::InputFileSource> datasetsToImport,
+// 						  const StringFilterSet *const areasFilter,
+// 						  const StringFilterSet *const measuresFilter,
+// 						  const YearFilterTuple *const yearsFilter) noexcept
+// {
+// 	try
+// 	{
+// 		std::istream &is = inputf.open();
+
+// 		areas.populate(is, BethYw::AuthorityCodeCSV, BethYw::InputFiles::AREAS.COLS);
+// 	}
+// 	catch (std::runtime_error &e)
+// 	{
+// 		std::cerr << "Error importing dataset:" << std::endl;
+// 		std::cerr << e.what() << std::endl;
+// 	}
+// }
 
 bool icontains(const std::vector<std::string> &vec, const char *elem)
 {

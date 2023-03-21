@@ -32,7 +32,7 @@
   @example
 	Area("W06000023");
 */
-Area::Area(const std::string &localAuthorityCode) : localAuthorityCode(localAuthorityCode) {}
+Area::Area(const std::string localAuthorityCode) : localAuthorityCode(localAuthorityCode) {}
 
 /*
   TODO: Area::getLocalAuthorityCode()
@@ -170,7 +170,7 @@ void Area::setName(std::string lang, const std::string name)
 	...
 	auto measure2 = area.getMeasure("pop");
 */
-const Measure &Area::getMeasure(const std::string &key) const
+Measure &Area::getMeasure(const std::string &key) const
 {
 	for (auto it = this->measures.begin(); it != this->measures.end(); ++it)
 	{
@@ -215,7 +215,7 @@ const Measure &Area::getMeasure(const std::string &key) const
 
 	area.setMeasure(codename, measure);
 */
-void Area::setMeasure(const std::string &codename, Measure measure)
+void Area::setMeasure(const std::string codename, Measure measure)
 {
 
 	for (auto it = this->measures.begin(); it != this->measures.end(); ++it)
@@ -227,9 +227,10 @@ void Area::setMeasure(const std::string &codename, Measure measure)
 				it->second.setLabel(measure.getLabel());
 			}
 
-			for (auto yit = measure.getYears().begin(); yit != measure.getYears().end(); ++yit)
+			std::vector<int> years = measure.getYears();
+			for (unsigned int i = 0; i < names.size(); i++)
 			{
-				it->second.setValue(*yit, measure.getValue(*yit));
+				it->second.setValue(years[i], measure.getValue(years[i]));
 			}
 
 			return;

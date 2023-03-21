@@ -70,7 +70,7 @@ Areas::Areas() {}
 	Area area(localAuthorityCode);
 	data.setArea(localAuthorityCode, area);
 */
-void Areas::setArea(const std::string &localAuthorityCode, Area area)
+void Areas::setArea(const std::string localAuthorityCode, Area area)
 {
 
 	for (auto it = this->container.begin(); it != this->container.end(); ++it)
@@ -216,16 +216,40 @@ void Areas::populateFromAuthorityCodeCSV(
 {
 	std::string line;
 	std::getline(is, line);
-	for (int i = 0; i < 10; i++)
-	{
-		std::getline(is, line);
-		std::cout << line << std::endl;
 
+	while (std::getline(is, line))
+	{
 		std::string data;
-		for (int i = 0; i < 3; i++)
+		std::string localAuthorityCode;
+		for (int j = 0; j < 3; j++)
 		{
 			data = line.substr(0, line.find(","));
-			std::cout << data << std::endl;
+			if (j == 0)
+			{
+				if (!(areasFilter == NULL) && areasFilter->size() > 0)
+				{
+					if (areasFilter->find(data) == areasFilter->end())
+					{
+						break;
+					}
+				}
+
+				localAuthorityCode = data.c_str();
+				Area area(localAuthorityCode);
+				this->setArea(localAuthorityCode, area);
+			}
+			else if (j == 1)
+			{
+				this->getArea(localAuthorityCode).setName("eng", data);
+			}
+			else if (j == 2)
+			{
+				this->getArea(localAuthorityCode).setName("cym", data);
+			}
+			else
+			{
+				throw std::out_of_range("Too many columns");
+			}
 			line.erase(0, line.find(",") + 1);
 		}
 	}
@@ -335,7 +359,80 @@ void Areas::populateFromAuthorityCodeCSV(
 	  &measuresFilter,
 	  &yearsFilter);
 */
+void Areas::populateFromWelshStatsJSON(std::istream &is,
+									   const BethYw::SourceColumnMapping &cols,
+									   const StringFilterSet *const areasFilter,
+									   const StringFilterSet *const measuresFilter,
+									   const YearFilterTuple *const yearsFilter)
+{
+	auto x = *measuresFilter;
+	json j;
+	is >> j;
 
+	for (auto &el : j["value"].items())
+	{
+		auto &data = el.value();
+		std::string localAuthorityCode = data[cols.find(BethYw::AUTH_CODE)->second];
+
+		Area area(localAuthorityCode);
+		std::string englishName = data[cols.find(BethYw::AUTH_NAME_ENG)->second];
+		area.setName("eng", englishName);
+
+		std::string measureCode = data[cols.find(BethYw::MEASURE_CODE)->second];
+		std::string measureName = data[cols.find(BethYw::MEASURE_NAME)->second];
+		double measureValue = data[cols.find(BethYw::VALUE)->second];
+		unsigned int measureYear = std::stoi(std::string(data[cols.find(BethYw::YEAR)->second]));
+
+		if (!(areasFilter == NULL) && areasFilter->size() > 0)
+		{
+			if (areasFilter->find(localAuthorityCode) == areasFilter->end())
+			{
+				continue;
+			}
+		}
+
+		if (!(measuresFilter == NULL) && measuresFilter->size() > 0)
+		{
+			transform(measureCode.begin(), measureCode.end(), measureCode.begin(), tolower);
+			if (measuresFilter->find(measureCode) == measuresFilter->end())
+			{
+				continue;
+			}
+		}
+
+		// if (!(measuresFilter == NULL) && measuresFilter->size() > 0)
+		// {
+		// 	for (auto it = measuresFilter->begin(); it != measuresFilter->end(); it++)
+		// 	{
+		// 		if (measureCode != *it)
+		// 		{
+		// 			violatesFilter = true;
+		// 			break;
+		// 		}
+		// 	}
+		// }
+
+		if (!(yearsFilter == NULL) && (std::get<0>(*yearsFilter) != 0 && std::get<1>(*yearsFilter) != 0))
+		{
+			if (measureYear < std::get<0>(*yearsFilter) || measureYear > std::get<1>(*yearsFilter))
+			{
+				continue;
+			}
+		}
+
+		// if (violatesFilter)
+		// {
+		// 	continue;
+		// }
+
+		Measure measure(measureCode, measureName);
+		measure.setValue(measureYear, measureValue);
+
+		area.setMeasure(measureCode, measure);
+
+		this->setArea(localAuthorityCode, area);
+	}
+}
 /*
   TODO: Areas::populateFromAuthorityByYearCSV(is,
 											  cols,

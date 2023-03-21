@@ -28,7 +28,7 @@
   @param source
 	A unique identifier for a source (i.e. the location).
 */
-InputSource::InputSource(const std::string &source) : source(source) {}
+InputSource::InputSource(const std::string source) : source(source) {}
 
 /*
   TODO: InputSource::getSource()

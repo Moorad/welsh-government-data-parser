@@ -33,19 +33,19 @@
 class Area
 {
 private:
-	const std::string &localAuthorityCode;
+	const std::string localAuthorityCode;
 	std::map<std::string, std::string> names;
-	std::map<std::string, Measure> measures;
+	mutable std::map<std::string, Measure> measures;
 
 public:
-	Area(const std::string &localAuthorityCode);
+	Area(const std::string localAuthorityCode);
 	const std::string &getLocalAuthorityCode() const;
 
 	const std::string &getName(const std::string &lang) const;
 	void setName(std::string lang, const std::string name);
 
-	const Measure &getMeasure(const std::string &key) const;
-	void setMeasure(const std::string &codename, Measure measure);
+	Measure &getMeasure(const std::string &key) const;
+	void setMeasure(const std::string codename, Measure measure);
 
 	const std::vector<std::string> getNames() const noexcept;
 	const std::vector<std::string> getMeasures() const noexcept;
