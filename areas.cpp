@@ -365,7 +365,6 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 									   const StringFilterSet *const measuresFilter,
 									   const YearFilterTuple *const yearsFilter)
 {
-	auto x = *measuresFilter;
 	json j;
 	is >> j;
 
@@ -560,6 +559,10 @@ void Areas::populate(std::istream &is,
 	{
 		populateFromAuthorityCodeCSV(is, cols);
 	}
+	else if (type == BethYw::WelshStatsJSON)
+	{
+		populateFromWelshStatsJSON(is, cols, nullptr, nullptr, nullptr);
+	}
 	else
 	{
 		throw std::runtime_error("Areas::populate: Unexpected data type");
@@ -660,6 +663,10 @@ void Areas::populate(
 	{
 		populateFromAuthorityCodeCSV(is, cols, areasFilter);
 	}
+	else if (type == BethYw::WelshStatsJSON)
+	{
+		populateFromWelshStatsJSON(is, cols, areasFilter, measuresFilter, yearsFilter);
+	}
 	else
 	{
 		throw std::runtime_error("Areas::populate: Unexpected data type");
@@ -741,11 +748,25 @@ void Areas::populate(
 */
 std::string Areas::toJSON() const
 {
+	if (this->size() == 0)
+	{
+		return "{}";
+	}
 	json j;
 
 	return j.dump();
 }
 
+const std::vector<std::string> Areas::getLocalAuthorityCodes() const noexcept
+{
+	std::vector<std::string> keys;
+	for (auto it = this->container.begin(); it != this->container.end(); ++it)
+	{
+		keys.push_back(it->first);
+	}
+
+	return keys;
+}
 /*
   TODO: operator<<(os, areas)
 
@@ -852,3 +873,23 @@ std::string Areas::toJSON() const
 	Areas areas();
 	std::cout << areas << std::end;
 */
+std::ostream &operator<<(std::ostream &os, Areas &areas)
+{
+
+	auto localAuthorityCodes = areas.getLocalAuthorityCodes();
+
+	// Sort alphabetically
+	std::sort(localAuthorityCodes.begin(), localAuthorityCodes.end(),
+			  [](const std::string &a, const std::string &b) -> bool
+			  {
+				  return a < b;
+			  });
+
+	for (unsigned int i = 0; i < localAuthorityCodes.size(); i++)
+	{
+		auto area = areas.getArea(localAuthorityCodes[i]);
+		os << area;
+	}
+
+	return os;
+}

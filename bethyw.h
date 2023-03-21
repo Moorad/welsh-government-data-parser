@@ -66,12 +66,12 @@ namespace BethYw
 
 	void loadAreas(Areas &areas, std::string dir, const StringFilterSet *const areasFilter);
 
-	// void loadDatasets(Areas &data,
-	// 				  std::string dir,
-	// 				  const StringFilterSet *const datasetsToImport,
-	// 				  const StringFilterSet *const areasFilter,
-	// 				  const StringFilterSet *const measuresFilter,
-	// 				  const YearFilterTuple *const yearsFilter) noexcept;
+	void loadDatasets(Areas &data,
+					  std::string dir,
+					  std::vector<BethYw::InputFileSource> datasetsToImport,
+					  const StringFilterSet *const areasFilter,
+					  const StringFilterSet *const measuresFilter,
+					  const YearFilterTuple *const yearsFilter);
 
 } // namespace BethYw
 

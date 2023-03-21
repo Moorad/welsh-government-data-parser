@@ -78,6 +78,8 @@ public:
 	void setArea(const std::string localAuthorityCode, Area area);
 	Area &getArea(const std::string &localAuthorityCode);
 
+	const std::vector<std::string> getLocalAuthorityCodes() const noexcept;
+
 	const int size() const;
 
 	void populateFromAuthorityCodeCSV(
@@ -105,6 +107,8 @@ public:
 		const YearFilterTuple *const yearsFilter = nullptr) noexcept(false);
 
 	std::string toJSON() const;
+
+	friend std::ostream &operator<<(std::ostream &os, Areas &areas);
 };
 
 #endif // AREAS_H

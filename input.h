@@ -57,6 +57,9 @@ protected:
 class InputFile : public InputSource
 {
 
+private:
+	std::ifstream file_stream;
+
 public:
 	InputFile(const std::string &filePath);
 	std::istream &open();

@@ -19,7 +19,9 @@
 
 #include <stdexcept>
 #include <string>
-
+#include <iostream>
+#include <iomanip>
+#include <algorithm>
 #include "measure.h"
 
 /*
@@ -41,7 +43,12 @@
 	std::string label = "Population";
 	Measure measure(codename, label);
 */
-Measure::Measure(std::string codename, const std::string label) : codename(codename), label(label) {}
+Measure::Measure(std::string codename, const std::string label) : label(label)
+{
+	std::transform(codename.begin(), codename.end(), codename.begin(), ::tolower);
+
+	this->codename = codename;
+}
 
 /*
   TODO: Measure::getCodename()
@@ -231,9 +238,16 @@ const int Measure::size() const noexcept
 const double Measure::getDifference() const noexcept
 {
 	double first_year = this->values.begin()->second;
-	double last_year = this->values.end()->second;
+	double last_year = std::prev(this->values.end())->second;
 
-	return last_year - first_year;
+	try
+	{
+		return std::abs(last_year - first_year);
+	}
+	catch (std::length_error &e)
+	{
+		return 0;
+	}
 }
 
 /*
@@ -255,10 +269,25 @@ const double Measure::getDifference() const noexcept
 */
 const double Measure::getDifferenceAsPercentage() const noexcept
 {
-	double first_year = this->values.begin()->second;
-	double last_year = this->values.end()->second;
+	auto years = this->getYears();
+	// Sort numerically
+	std::sort(years.begin(), years.end(),
+			  [](const int &a, const int &b) -> bool
+			  {
+				  return a < b;
+			  });
 
-	return (last_year / first_year) * 100;
+	double first_year = this->getValue(years[0]);
+	double last_year = this->getValue(years[years.size() - 1]);
+
+	try
+	{
+		return (std::abs(last_year - first_year) / first_year) * 100;
+	}
+	catch (std::logic_error &e)
+	{
+		return 0;
+	}
 }
 
 /*
@@ -337,7 +366,55 @@ const std::vector<int> Measure::getYears() const noexcept
 	measure.setValue(1999, 12345678.9);
 	std::cout << measure << std::end;
 */
+std::ostream &operator<<(std::ostream &os, Measure &measure)
+{
 
+	auto years = measure.getYears();
+
+	// Sort numerically
+	std::sort(years.begin(), years.end(),
+			  [](const int &a, const int &b) -> bool
+			  {
+				  return a < b;
+			  });
+
+	os << measure.getLabel() << " (" << measure.getCodename() << ")" << std::endl;
+
+	int space_count;
+	for (unsigned int i = 0; i < years.size(); i++)
+	{
+		space_count = std::to_string(measure.getValue(years[i])).size() - std::to_string(years[i]).size();
+
+		std::cout
+			<< std::string(space_count, ' ') << std::to_string(years[i]) + " ";
+	}
+
+	space_count = std::to_string(measure.getAverage()).size() - std::string("Average").size();
+	os << std::string(space_count, ' ')
+	   << "Average ";
+
+	space_count = std::to_string(measure.getDifference()).size() - std::string("Diff.").size();
+	os << std::string(space_count, ' ')
+	   << "Diff. ";
+
+	space_count = std::to_string(measure.getDifferenceAsPercentage()).size() - std::string("% Diff.").size();
+	os << std::string(space_count, ' ')
+	   << "% Diff." << std::endl;
+
+	for (unsigned int i = 0; i < years.size(); i++)
+	{
+		os << std::to_string(measure.getValue(years[i])) << " ";
+	}
+
+	os << std::to_string(measure.getAverage()) << " ";
+	os << std::to_string(measure.getDifference()) << " ";
+	os << std::to_string(measure.getDifferenceAsPercentage()) << std::endl;
+
+	os
+		<< std::endl;
+
+	return os;
+}
 /*
   TODO: operator==(lhs, rhs)
 

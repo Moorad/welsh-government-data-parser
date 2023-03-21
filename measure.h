@@ -49,7 +49,9 @@ public:
 	const double getAverage() const noexcept;
 
 	const std::vector<int> getYears() const noexcept;
+
+	friend bool operator==(const Measure &m1, const Measure &m2);
+	friend std::ostream &operator<<(std::ostream &os, Measure &measure);
 };
 
-bool operator==(const Measure &m1, const Measure &m2);
 #endif // MEASURE_H_

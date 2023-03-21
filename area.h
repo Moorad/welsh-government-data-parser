@@ -51,8 +51,8 @@ public:
 	const std::vector<std::string> getMeasures() const noexcept;
 
 	const int size() const;
+	friend bool operator==(const Area &a1, const Area &a2);
+	friend std::ostream &operator<<(std::ostream &os, Area &area);
 };
-
-bool operator==(const Area &a1, const Area &a2);
 
 #endif // AREA_H_

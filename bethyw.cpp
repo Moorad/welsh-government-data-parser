@@ -85,13 +85,14 @@ int BethYw::run(int argc, char *argv[])
 
 		BethYw::loadAreas(data, dir, &areasFilter);
 
-		std::cout << data.size() << std::endl;
-		// BethYw::loadDatasets(data,
-		// 					 dir,
-		// 					 &datasetsToImport,
-		// 					 &areasFilter,
-		// 					 &measuresFilter,
-		// 					 &yearsFilter);
+		BethYw::loadDatasets(data,
+							 dir,
+							 datasetsToImport,
+							 &areasFilter,
+							 &measuresFilter,
+							 &yearsFilter);
+
+		// std::cout << data.size() << std::endl;
 
 		if (args.count("json"))
 		{
@@ -101,7 +102,7 @@ int BethYw::run(int argc, char *argv[])
 		else
 		{
 			// The output as tables
-			// std::cout << data << std::endl;
+			std::cout << data;
 		}
 	}
 	catch (const std::invalid_argument &e)
@@ -461,21 +462,21 @@ std::tuple<unsigned int, unsigned int> BethYw::parseYearsArg(
 */
 void BethYw::loadAreas(Areas &areas, std::string dir, const StringFilterSet *const areasFilter)
 {
-	std::size_t fileExtension = dir.find_last_of(".");
-	std::string directory = dir.substr(0, fileExtension) + "/";
-
-	InputFile inputf(directory + InputFiles::AREAS.FILE);
+	InputFile inputf(dir + InputFiles::AREAS.FILE);
 
 	try
 	{
 		std::istream &is = inputf.open();
 
-		areas.populate(is, BethYw::AuthorityCodeCSV, BethYw::InputFiles::AREAS.COLS, areasFilter, nullptr, nullptr);
+		areas.populate(is, BethYw::AuthorityCodeCSV, BethYw::InputFiles::AREAS.COLS, areasFilter);
 	}
 	catch (std::runtime_error &e)
 	{
-		std::cerr << "Error importing dataset:" << std::endl;
-		std::cerr << e.what() << std::endl;
+		std::stringstream sstream;
+		sstream << "Error importing dataset:" << std::endl
+				<< e.what();
+
+		throw std::runtime_error(sstream.str());
 	}
 }
 /*
@@ -532,25 +533,29 @@ void BethYw::loadAreas(Areas &areas, std::string dir, const StringFilterSet *con
 	  BethYw::parseMeasuresArg(args),
 	  BethYw::parseYearsArg(args));
 */
-// void BethYw::loadDatasets(Areas &data,
-// 						  std::string dir,
-// 						  std::vector<BethYw::InputFileSource> datasetsToImport,
-// 						  const StringFilterSet *const areasFilter,
-// 						  const StringFilterSet *const measuresFilter,
-// 						  const YearFilterTuple *const yearsFilter) noexcept
-// {
-// 	try
-// 	{
-// 		std::istream &is = inputf.open();
+void BethYw::loadDatasets(Areas &areas,
+						  std::string dir,
+						  std::vector<BethYw::InputFileSource> datasetsToImport,
+						  const StringFilterSet *const areasFilter,
+						  const StringFilterSet *const measuresFilter,
+						  const YearFilterTuple *const yearsFilter)
+{
+	// std::cout << datasetsToImport[0].FILE << std::endl;
 
-// 		areas.populate(is, BethYw::AuthorityCodeCSV, BethYw::InputFiles::AREAS.COLS);
-// 	}
-// 	catch (std::runtime_error &e)
-// 	{
-// 		std::cerr << "Error importing dataset:" << std::endl;
-// 		std::cerr << e.what() << std::endl;
-// 	}
-// }
+	InputFile inputf(dir + datasetsToImport[0].FILE);
+
+	try
+	{
+		std::istream &is = inputf.open();
+
+		areas.populate(is, BethYw::WelshStatsJSON, datasetsToImport[0].COLS, areasFilter, measuresFilter, yearsFilter);
+	}
+	catch (std::runtime_error &e)
+	{
+		std::cerr << "Error importing dataset:" << std::endl;
+		std::cerr << e.what() << std::endl;
+	}
+}
 
 bool icontains(const std::vector<std::string> &vec, const char *elem)
 {

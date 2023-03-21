@@ -228,7 +228,7 @@ void Area::setMeasure(const std::string codename, Measure measure)
 			}
 
 			std::vector<int> years = measure.getYears();
-			for (unsigned int i = 0; i < names.size(); i++)
+			for (unsigned int i = 0; i < years.size(); i++)
 			{
 				it->second.setValue(years[i], measure.getValue(years[i]));
 			}
@@ -321,6 +321,37 @@ const std::vector<std::string> Area::getMeasures() const noexcept
 	area.setName("eng", "Powys");
 	std::cout << area << std::endl;
 */
+std::ostream &operator<<(std::ostream &os, Area &area)
+{
+	os << area.getName("eng") << " / " << area.getName("cym")
+	   << " (" << area.getLocalAuthorityCode() << ")" << std::endl;
+
+	auto measures = area.getMeasures();
+
+	// Sort alphabetically
+	std::sort(measures.begin(), measures.end(),
+			  [](const std::string &a, const std::string &b) -> bool
+			  {
+				  return a < b;
+			  });
+
+	if (measures.size() == 0)
+	{
+		os << "<no measures>\n"
+		   << std::endl;
+
+		return os;
+	}
+
+	for (unsigned int i = 0; i < measures.size(); i++)
+	{
+		auto measure = area.getMeasure(measures[i]);
+
+		os << measure;
+	}
+
+	return os;
+}
 
 /*
   TODO: operator==(lhs, rhs)
