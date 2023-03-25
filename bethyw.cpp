@@ -219,37 +219,35 @@ std::vector<BethYw::InputFileSource> BethYw::parseDatasetsArg(
 
 	// Create the container for the return type
 	std::vector<InputFileSource> datasetsToImport;
+	// Container for command line arguments
+	std::vector<std::string> inputDatasets;
 
-	// If dataset argument not passed in, return all datasets
-	if (args["datasets"].count() == 0)
+	bool importAll = false;
+
+	try
 	{
-		for (unsigned int i = 0; i < numDatasets; i++)
-		{
-			datasetsToImport.push_back(allDatasets[i]);
-		}
-
-		return datasetsToImport;
+		inputDatasets = args["datasets"].as<std::vector<std::string>>();
+	}
+	catch (std::domain_error &e)
+	{
+		// If no dataset argument was passed in, all datasets should be imported
+		importAll = true;
 	}
 
-	std::vector<std::string> inputDatasets = args["datasets"].as<std::vector<std::string>>();
-
-	// If input dataset contains "all", return all datasets
-	if (icontains(inputDatasets, "all"))
+	// Loop through each input datasets
+	// If no dataset argument was set inputDatasets.size() will be 0
+	for (size_t i = 0; i < inputDatasets.size(); i++)
 	{
-		for (unsigned int i = 0; i < numDatasets; i++)
+		// If input dataset contains "all", import all datasets
+		if (inputDatasets[i] == "all")
 		{
-			datasetsToImport.push_back(allDatasets[i]);
+			importAll = true;
+			break;
 		}
 
-		return datasetsToImport;
-	}
-
-	// Loop through input datasets
-	for (unsigned int i = 0; i < inputDatasets.size(); i++)
-	{
-		// Check if current dataset is valid
+		// Search if inputted dataset exists in the list is valid
 		bool not_found = true;
-		for (unsigned int j = 0; j < numDatasets; j++)
+		for (size_t j = 0; j < numDatasets; j++)
 		{
 			if (inputDatasets[i] == allDatasets[j].CODE)
 			{
@@ -259,11 +257,24 @@ std::vector<BethYw::InputFileSource> BethYw::parseDatasetsArg(
 			}
 		}
 
-		// If invalid dataset, throw an exception
+		// If dataset not found, throw an exception
 		if (not_found)
 		{
 			throw std::invalid_argument("No dataset matches key: " + inputDatasets[i]);
 		}
+	}
+
+	// Import all datasets
+	if (importAll)
+	{
+		datasetsToImport.clear();
+
+		for (size_t i = 0; i < numDatasets; i++)
+		{
+			datasetsToImport.push_back(allDatasets[i]);
+		}
+
+		return datasetsToImport;
 	}
 
 	return datasetsToImport;
@@ -540,20 +551,21 @@ void BethYw::loadDatasets(Areas &areas,
 						  const StringFilterSet *const measuresFilter,
 						  const YearFilterTuple *const yearsFilter)
 {
-	// std::cout << datasetsToImport[0].FILE << std::endl;
-
-	InputFile inputf(dir + datasetsToImport[0].FILE);
-
-	try
+	for (auto dataset : datasetsToImport)
 	{
-		std::istream &is = inputf.open();
+		InputFile inputf(dir + dataset.FILE);
 
-		areas.populate(is, BethYw::WelshStatsJSON, datasetsToImport[0].COLS, areasFilter, measuresFilter, yearsFilter);
-	}
-	catch (std::runtime_error &e)
-	{
-		std::cerr << "Error importing dataset:" << std::endl;
-		std::cerr << e.what() << std::endl;
+		try
+		{
+			std::istream &is = inputf.open();
+
+			areas.populate(is, dataset.PARSER, dataset.COLS, areasFilter, measuresFilter, yearsFilter);
+		}
+		catch (std::runtime_error &e)
+		{
+			std::cerr << "Error importing dataset:" << std::endl;
+			std::cerr << e.what() << std::endl;
+		}
 	}
 }
 
@@ -582,10 +594,3 @@ bool icontains(const std::unordered_set<std::string> &vec, const char *elem)
 
 	return false;
 }
-
-// FIXME: Remove
-// // Convert string to lowercase
-// void lowercase(std::string &str)
-// {
-// 	transform(str.begin(), str.end(), str.begin(), tolower);
-// }

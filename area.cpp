@@ -227,7 +227,7 @@ void Area::setMeasure(const std::string codename, Measure measure)
 				it->second.setLabel(measure.getLabel());
 			}
 
-			std::vector<int> years = measure.getYears();
+			std::vector<int> years = measure.getAllYears();
 			for (unsigned int i = 0; i < years.size(); i++)
 			{
 				it->second.setValue(years[i], measure.getValue(years[i]));
@@ -237,7 +237,9 @@ void Area::setMeasure(const std::string codename, Measure measure)
 		}
 	}
 
-	this->measures.insert(std::make_pair(codename, measure));
+	std::string codenameLower(codename.size(), 0);
+	std::transform(codename.begin(), codename.end(), codenameLower.begin(), ::tolower);
+	this->measures.insert(std::make_pair(codenameLower, measure));
 }
 
 /*
@@ -279,13 +281,20 @@ const std::vector<std::string> Area::getNames() const noexcept
 	return keys;
 }
 
-const std::vector<std::string> Area::getMeasures() const noexcept
+const std::vector<std::string> Area::getAllMeasureCodenames() const noexcept
 {
 	std::vector<std::string> keys;
 	for (auto it = this->measures.begin(); it != this->measures.end(); ++it)
 	{
 		keys.push_back(it->first);
 	}
+
+	// Sort keys alphabetically
+	std::sort(keys.begin(), keys.end(),
+			  [](const std::string &a, const std::string &b) -> bool
+			  {
+				  return a < b;
+			  });
 
 	return keys;
 }
@@ -326,16 +335,9 @@ std::ostream &operator<<(std::ostream &os, Area &area)
 	os << area.getName("eng") << " / " << area.getName("cym")
 	   << " (" << area.getLocalAuthorityCode() << ")" << std::endl;
 
-	auto measures = area.getMeasures();
+	auto measureCodenames = area.getAllMeasureCodenames();
 
-	// Sort alphabetically
-	std::sort(measures.begin(), measures.end(),
-			  [](const std::string &a, const std::string &b) -> bool
-			  {
-				  return a < b;
-			  });
-
-	if (measures.size() == 0)
+	if (measureCodenames.size() == 0)
 	{
 		os << "<no measures>\n"
 		   << std::endl;
@@ -343,9 +345,9 @@ std::ostream &operator<<(std::ostream &os, Area &area)
 		return os;
 	}
 
-	for (unsigned int i = 0; i < measures.size(); i++)
+	for (unsigned int i = 0; i < measureCodenames.size(); i++)
 	{
-		auto measure = area.getMeasure(measures[i]);
+		auto measure = area.getMeasure(measureCodenames[i]);
 
 		os << measure;
 	}
@@ -400,12 +402,12 @@ bool operator==(const Area &a1, const Area &a2)
 		}
 	}
 
-	std::vector<std::string> measures = a1.getMeasures();
-	for (unsigned int i = 0; i < measures.size(); i++)
+	auto measureCodenames = a1.getAllMeasureCodenames();
+	for (unsigned int i = 0; i < measureCodenames.size(); i++)
 	{
 		try
 		{
-			if (!(a1.getMeasure(measures[i]) == a2.getMeasure(measures[i])))
+			if (!(a1.getMeasure(measureCodenames[i]) == a2.getMeasure(measureCodenames[i])))
 			{
 				return false;
 			}

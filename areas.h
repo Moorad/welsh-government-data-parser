@@ -78,7 +78,7 @@ public:
 	void setArea(const std::string localAuthorityCode, Area area);
 	Area &getArea(const std::string &localAuthorityCode);
 
-	const std::vector<std::string> getLocalAuthorityCodes() const noexcept;
+	const std::vector<std::string> getAllAuthorityCodes() const noexcept;
 
 	const int size() const;
 
@@ -92,6 +92,13 @@ public:
 									const StringFilterSet *const areasFilter,
 									const StringFilterSet *const measuresFilter,
 									const YearFilterTuple *const yearsFilter);
+
+	void populateFromAuthorityByYearCSV(
+		std::istream &is,
+		const BethYw::SourceColumnMapping &cols,
+		const StringFilterSet *const areasFilter,
+		const StringFilterSet *const measuresFilter,
+		const YearFilterTuple *const yearsFilter);
 
 	void populate(
 		std::istream &is,

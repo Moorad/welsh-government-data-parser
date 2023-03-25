@@ -48,7 +48,7 @@ public:
 	void setMeasure(const std::string codename, Measure measure);
 
 	const std::vector<std::string> getNames() const noexcept;
-	const std::vector<std::string> getMeasures() const noexcept;
+	const std::vector<std::string> getAllMeasureCodenames() const noexcept;
 
 	const int size() const;
 	friend bool operator==(const Area &a1, const Area &a2);

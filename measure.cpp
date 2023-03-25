@@ -269,7 +269,7 @@ const double Measure::getDifference() const noexcept
 */
 const double Measure::getDifferenceAsPercentage() const noexcept
 {
-	auto years = this->getYears();
+	auto years = this->getAllYears();
 	// Sort numerically
 	std::sort(years.begin(), years.end(),
 			  [](const int &a, const int &b) -> bool
@@ -317,15 +317,21 @@ const double Measure::getAverage() const noexcept
 	return sum / this->size();
 }
 
-// getYears will display the list of all the years in the container.
+// getAllYears will display the list of all the years in the container.
 // Used for comparing maps
-const std::vector<int> Measure::getYears() const noexcept
+const std::vector<int> Measure::getAllYears() const noexcept
 {
 	std::vector<int> keys;
 	for (auto it = this->values.begin(); it != this->values.end(); ++it)
 	{
 		keys.push_back(it->first);
 	}
+
+	std::sort(keys.begin(), keys.end(),
+			  [](const int &a, const int &b) -> bool
+			  {
+				  return a < b;
+			  });
 
 	return keys;
 }
@@ -369,7 +375,7 @@ const std::vector<int> Measure::getYears() const noexcept
 std::ostream &operator<<(std::ostream &os, Measure &measure)
 {
 
-	auto years = measure.getYears();
+	auto years = measure.getAllYears();
 
 	// Sort numerically
 	std::sort(years.begin(), years.end(),
@@ -385,8 +391,7 @@ std::ostream &operator<<(std::ostream &os, Measure &measure)
 	{
 		space_count = std::to_string(measure.getValue(years[i])).size() - std::to_string(years[i]).size();
 
-		std::cout
-			<< std::string(space_count, ' ') << std::to_string(years[i]) + " ";
+		os << std::string(space_count, ' ') << std::to_string(years[i]) + " ";
 	}
 
 	space_count = std::to_string(measure.getAverage()).size() - std::string("Average").size();
@@ -440,7 +445,7 @@ bool operator==(const Measure &m1, const Measure &m2)
 		return false;
 	}
 
-	for (auto it = m1.getYears().begin(); it != m1.getYears().end(); it++)
+	for (auto it = m1.getAllYears().begin(); it != m1.getAllYears().end(); it++)
 	{
 		try
 		{

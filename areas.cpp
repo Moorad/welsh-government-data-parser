@@ -77,20 +77,16 @@ void Areas::setArea(const std::string localAuthorityCode, Area area)
 	{
 		if (strcasecmp(it->first.c_str(), localAuthorityCode.c_str()) == 0)
 		{
-			// for (::const_iterator nit = area.getNames().begin(); nit != area.getNames().end(); ++nit)
-			// {
-			// 	it->second.setName(*nit, area.getName(*nit));
-			// }
-			std::vector<std::string> names = area.getNames();
+			auto names = area.getNames();
 			for (unsigned int i = 0; i < names.size(); i++)
 			{
 				it->second.setName(names[i], area.getName(names[i]));
 			}
 
-			std::vector<std::string> measures = area.getMeasures();
-			for (unsigned int i = 0; i < measures.size(); i++)
+			auto measureCodenames = area.getAllMeasureCodenames();
+			for (unsigned int i = 0; i < measureCodenames.size(); i++)
 			{
-				it->second.setMeasure(measures[i], area.getMeasure(measures[i]));
+				it->second.setMeasure(measureCodenames[i], area.getMeasure(measureCodenames[i]));
 			}
 
 			return;
@@ -372,15 +368,36 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 	{
 		auto &data = el.value();
 		std::string localAuthorityCode = data[cols.find(BethYw::AUTH_CODE)->second];
-
 		Area area(localAuthorityCode);
+
 		std::string englishName = data[cols.find(BethYw::AUTH_NAME_ENG)->second];
 		area.setName("eng", englishName);
 
-		std::string measureCode = data[cols.find(BethYw::MEASURE_CODE)->second];
-		std::string measureName = data[cols.find(BethYw::MEASURE_NAME)->second];
-		double measureValue = data[cols.find(BethYw::VALUE)->second];
+		std::string measureCode;
+		std::string measureName;
+
+		if (cols.find(BethYw::MEASURE_CODE) != cols.end())
+		{
+			measureCode = data[cols.find(BethYw::MEASURE_CODE)->second];
+			measureName = data[cols.find(BethYw::MEASURE_NAME)->second];
+		}
+		else
+		{
+			measureCode = cols.find(BethYw::SINGLE_MEASURE_CODE)->second;
+			measureName = cols.find(BethYw::SINGLE_MEASURE_NAME)->second;
+		}
+
 		unsigned int measureYear = std::stoi(std::string(data[cols.find(BethYw::YEAR)->second]));
+
+		double measureValue;
+		if (data[cols.find(BethYw::VALUE)->second].is_string())
+		{
+			measureValue = std::stod(std::string(data[cols.find(BethYw::VALUE)->second]));
+		}
+		else
+		{
+			measureValue = data[cols.find(BethYw::VALUE)->second];
+		}
 
 		if (!(areasFilter == NULL) && areasFilter->size() > 0)
 		{
@@ -399,18 +416,6 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 			}
 		}
 
-		// if (!(measuresFilter == NULL) && measuresFilter->size() > 0)
-		// {
-		// 	for (auto it = measuresFilter->begin(); it != measuresFilter->end(); it++)
-		// 	{
-		// 		if (measureCode != *it)
-		// 		{
-		// 			violatesFilter = true;
-		// 			break;
-		// 		}
-		// 	}
-		// }
-
 		if (!(yearsFilter == NULL) && (std::get<0>(*yearsFilter) != 0 && std::get<1>(*yearsFilter) != 0))
 		{
 			if (measureYear < std::get<0>(*yearsFilter) || measureYear > std::get<1>(*yearsFilter))
@@ -418,11 +423,6 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 				continue;
 			}
 		}
-
-		// if (violatesFilter)
-		// {
-		// 	continue;
-		// }
 
 		Measure measure(measureCode, measureName);
 		measure.setValue(measureYear, measureValue);
@@ -499,6 +499,75 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 	std::out_of_range if there are not enough columns in cols
 */
 
+void Areas::populateFromAuthorityByYearCSV(
+	std::istream &is,
+	const BethYw::SourceColumnMapping &cols,
+	const StringFilterSet *const areasFilter,
+	const StringFilterSet *const measuresFilter,
+	const YearFilterTuple *const yearsFilter)
+{
+	std::string line;
+	std::getline(is, line);
+	std::vector<unsigned int> years;
+
+	// Skip the first one
+	line.erase(0, line.find(",") + 1);
+
+	std::string measureCode = cols.find(BethYw::SINGLE_MEASURE_CODE)->second;
+	std::string measureName = cols.find(BethYw::SINGLE_MEASURE_NAME)->second;
+
+	std::size_t pos = 0;
+	while ((pos = line.find(",")) != std::string::npos)
+	{
+		years.push_back(stoi(line.substr(0, pos)));
+		line.erase(0, pos + 1);
+	}
+	years.push_back(stoi(line));
+
+	while (std::getline(is, line))
+	{
+		std::string localAuthorityCode = line.substr(0, line.find(","));
+		line.erase(0, line.find(",") + 1);
+
+		if (!(areasFilter == NULL) && areasFilter->size() > 0)
+		{
+			if (areasFilter->find(localAuthorityCode) == areasFilter->end())
+			{
+				line.clear();
+				continue;
+			}
+		}
+
+		if (!(measuresFilter == NULL) && measuresFilter->size() > 0)
+		{
+			transform(measureCode.begin(), measureCode.end(), measureCode.begin(), tolower);
+			if (measuresFilter->find(measureCode) == measuresFilter->end())
+			{
+				continue;
+			}
+		}
+
+		Measure measure = Measure(measureCode, measureName);
+		for (unsigned int i = 0; i < years.size(); i++)
+		{
+			double value = stod(line.substr(0, line.find(",")));
+
+			if (!(yearsFilter == NULL) && (std::get<0>(*yearsFilter) != 0 && std::get<1>(*yearsFilter) != 0))
+			{
+				if (years[i] < std::get<0>(*yearsFilter) || years[i] > std::get<1>(*yearsFilter))
+				{
+					continue;
+				}
+			}
+
+			measure.setValue(years[i], value);
+			line.erase(0, line.find(",") + 1);
+		}
+
+		this->getArea(localAuthorityCode).setMeasure(cols.find(BethYw::SINGLE_MEASURE_CODE)->second, measure);
+	}
+}
+
 /*
   TODO: Areas::populate(is, type, cols)
 
@@ -562,6 +631,10 @@ void Areas::populate(std::istream &is,
 	else if (type == BethYw::WelshStatsJSON)
 	{
 		populateFromWelshStatsJSON(is, cols, nullptr, nullptr, nullptr);
+	}
+	else if (type == BethYw::AuthorityByYearCSV)
+	{
+		populateFromAuthorityByYearCSV(is, cols, nullptr, nullptr, nullptr);
 	}
 	else
 	{
@@ -667,6 +740,10 @@ void Areas::populate(
 	{
 		populateFromWelshStatsJSON(is, cols, areasFilter, measuresFilter, yearsFilter);
 	}
+	else if (type == BethYw::AuthorityByYearCSV)
+	{
+		populateFromAuthorityByYearCSV(is, cols, areasFilter, measuresFilter, yearsFilter);
+	}
 	else
 	{
 		throw std::runtime_error("Areas::populate: Unexpected data type");
@@ -754,16 +831,49 @@ std::string Areas::toJSON() const
 	}
 	json j;
 
+	auto areaCodes = this->getAllAuthorityCodes();
+
+	for (unsigned int i = 0; i < areaCodes.size(); i++)
+	{
+		auto area = this->container.find(areaCodes[i])->second;
+
+		auto measureCodenames = area.getAllMeasureCodenames();
+
+		for (unsigned int k = 0; k < measureCodenames.size(); k++)
+		{
+			auto measure = area.getMeasure(measureCodenames[k]);
+			auto years = measure.getAllYears();
+
+			for (unsigned int t = 0; t < years.size(); t++)
+			{
+				j[areaCodes[i]]["measures"][measureCodenames[k]][std::to_string(years[t])] = measure.getValue(years[t]);
+			}
+		}
+
+		auto areaNames = area.getNames();
+		for (unsigned int k = 0; k < areaNames.size(); k++)
+		{
+			j[areaCodes[i]]["names"][areaNames[k]] = area.getName(areaNames[k]);
+		}
+	}
+
 	return j.dump();
 }
 
-const std::vector<std::string> Areas::getLocalAuthorityCodes() const noexcept
+const std::vector<std::string> Areas::getAllAuthorityCodes() const noexcept
 {
 	std::vector<std::string> keys;
 	for (auto it = this->container.begin(); it != this->container.end(); ++it)
 	{
 		keys.push_back(it->first);
 	}
+
+	// Sort keys alphabetically
+	std::sort(keys.begin(), keys.end(),
+			  [](const std::string &a, const std::string &b) -> bool
+			  {
+				  return a < b;
+			  });
 
 	return keys;
 }
@@ -876,18 +986,11 @@ const std::vector<std::string> Areas::getLocalAuthorityCodes() const noexcept
 std::ostream &operator<<(std::ostream &os, Areas &areas)
 {
 
-	auto localAuthorityCodes = areas.getLocalAuthorityCodes();
+	auto areaCodes = areas.getAllAuthorityCodes();
 
-	// Sort alphabetically
-	std::sort(localAuthorityCodes.begin(), localAuthorityCodes.end(),
-			  [](const std::string &a, const std::string &b) -> bool
-			  {
-				  return a < b;
-			  });
-
-	for (unsigned int i = 0; i < localAuthorityCodes.size(); i++)
+	for (unsigned int i = 0; i < areaCodes.size(); i++)
 	{
-		auto area = areas.getArea(localAuthorityCodes[i]);
+		auto area = areas.getArea(areaCodes[i]);
 		os << area;
 	}
 
