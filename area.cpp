@@ -278,6 +278,13 @@ const std::vector<std::string> Area::getNames() const noexcept
 		keys.push_back(it->first);
 	}
 
+	// Sort keys alphabetically
+	std::sort(keys.begin(), keys.end(),
+			  [](const std::string &a, const std::string &b) -> bool
+			  {
+				  return a > b;
+			  });
+
 	return keys;
 }
 
@@ -332,8 +339,24 @@ const std::vector<std::string> Area::getAllMeasureCodenames() const noexcept
 */
 std::ostream &operator<<(std::ostream &os, Area &area)
 {
-	os << area.getName("eng") << " / " << area.getName("cym")
-	   << " (" << area.getLocalAuthorityCode() << ")" << std::endl;
+	std::vector<std::string> names = area.getNames();
+
+	if (names.size() == 0)
+	{
+		os << "Unnamed";
+	}
+
+	for (size_t i = 0; i < names.size(); i++)
+	{
+		os << area.getName(names[i]);
+
+		if (i < names.size() - 1)
+		{
+			os << " / ";
+		}
+	}
+
+	os << std::endl;
 
 	auto measureCodenames = area.getAllMeasureCodenames();
 

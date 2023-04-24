@@ -280,14 +280,13 @@ const double Measure::getDifferenceAsPercentage() const noexcept
 	double first_year = this->getValue(years[0]);
 	double last_year = this->getValue(years[years.size() - 1]);
 
-	try
-	{
-		return (std::abs(last_year - first_year) / first_year) * 100;
-	}
-	catch (std::logic_error &e)
+	// Cannot divide by zero
+	if (first_year == 0)
 	{
 		return 0;
 	}
+
+	return (std::abs(last_year - first_year) / first_year) * 100;
 }
 
 /*

@@ -213,41 +213,69 @@ void Areas::populateFromAuthorityCodeCSV(
 	std::string line;
 	std::getline(is, line);
 
+	// while ((pos = line.find(",")) != std::string::npos)
+	// {
+	// 	values.push_back(line.substr(0, pos));
+	// 	line.erase(0, pos + 1);
+	// }
+	// values.push_back(line);
+
+	// for (size_t i = 0; i < values.size(); i++)
+	// {
+	// 	if (cols.find(values))
+	// }
+
 	while (std::getline(is, line))
 	{
-		std::string data;
-		std::string localAuthorityCode;
-		for (int j = 0; j < 3; j++)
+		std::vector<std::string> values;
+		size_t pos = 0;
+		while ((pos = line.find(",")) != std::string::npos)
 		{
-			data = line.substr(0, line.find(","));
-			if (j == 0)
-			{
-				if (!(areasFilter == NULL) && areasFilter->size() > 0)
-				{
-					if (areasFilter->find(data) == areasFilter->end())
-					{
-						break;
-					}
-				}
-
-				localAuthorityCode = data.c_str();
-				Area area(localAuthorityCode);
-				this->setArea(localAuthorityCode, area);
-			}
-			else if (j == 1)
-			{
-				this->getArea(localAuthorityCode).setName("eng", data);
-			}
-			else if (j == 2)
-			{
-				this->getArea(localAuthorityCode).setName("cym", data);
-			}
-			else
-			{
-				throw std::out_of_range("Too many columns");
-			}
-			line.erase(0, line.find(",") + 1);
+			values.push_back(line.substr(0, pos));
+			line.erase(0, pos + 1);
 		}
+		values.push_back(line);
+
+		if (values.size() != 3)
+		{
+			throw std::out_of_range("Too many columns");
+		}
+
+		bool contains = false;
+		if (!(areasFilter == NULL) && areasFilter->size() > 0)
+		{
+			std::string codeLower(values[0]);
+			std::transform(codeLower.begin(), codeLower.end(), codeLower.begin(), ::tolower);
+
+			std::string engNameLower(values[1]);
+			std::transform(engNameLower.begin(), engNameLower.end(), engNameLower.begin(), ::tolower);
+
+			std::string welshNameLower(values[2]);
+			std::transform(welshNameLower.begin(), welshNameLower.end(), welshNameLower.begin(), ::tolower);
+
+			for (const auto &substring : (*areasFilter))
+			{
+				bool matchInCode = codeLower.find(substring) != std::string::npos;
+				bool matchInEngName = engNameLower.find(substring) != std::string::npos;
+				bool matchInWelshName = welshNameLower.find(substring) != std::string::npos;
+
+				if (matchInCode || matchInEngName || matchInWelshName)
+				{
+					contains = true;
+					break;
+				}
+			}
+
+			if (!contains)
+			{
+				continue;
+			}
+		}
+
+		Area area(values[0]);
+		area.setName("eng", values[1]);
+		area.setName("cym", values[2]);
+		this->setArea(values[0], area);
 	}
 }
 
@@ -399,9 +427,28 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 			measureValue = data[cols.find(BethYw::VALUE)->second];
 		}
 
+		bool contains = false;
 		if (!(areasFilter == NULL) && areasFilter->size() > 0)
 		{
-			if (areasFilter->find(localAuthorityCode) == areasFilter->end())
+			std::string codeLower(localAuthorityCode);
+			std::transform(codeLower.begin(), codeLower.end(), codeLower.begin(), ::tolower);
+
+			std::string engNameLower(englishName);
+			std::transform(engNameLower.begin(), engNameLower.end(), engNameLower.begin(), ::tolower);
+
+			for (const auto &substring : (*areasFilter))
+			{
+				bool matchInCode = codeLower.find(substring) != std::string::npos;
+				bool matchInEngName = engNameLower.find(substring) != std::string::npos;
+
+				if (matchInCode || matchInEngName)
+				{
+					contains = true;
+					break;
+				}
+			}
+
+			if (!contains)
 			{
 				continue;
 			}

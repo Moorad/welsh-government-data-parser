@@ -228,6 +228,10 @@ std::vector<BethYw::InputFileSource> BethYw::parseDatasetsArg(
 	{
 		inputDatasets = args["datasets"].as<std::vector<std::string>>();
 	}
+	catch (std::bad_cast &e)
+	{
+		throw std::invalid_argument("Invalid command line argument for dataset");
+	}
 	catch (std::domain_error &e)
 	{
 		// If no dataset argument was passed in, all datasets should be imported
@@ -238,6 +242,10 @@ std::vector<BethYw::InputFileSource> BethYw::parseDatasetsArg(
 	// If no dataset argument was set inputDatasets.size() will be 0
 	for (size_t i = 0; i < inputDatasets.size(); i++)
 	{
+		// Convert current value to lowercase
+		std::transform(inputDatasets[i].begin(), inputDatasets[i].end(),
+					   inputDatasets[i].begin(), ::tolower);
+
 		// If input dataset contains "all", import all datasets
 		if (inputDatasets[i] == "all")
 		{
@@ -311,26 +319,35 @@ std::unordered_set<std::string> BethYw::parseAreasArg(
 {
 	// The unordered set you will return
 	std::unordered_set<std::string> areas;
+	std::vector<std::string> inputAreas;
 
-	if (args["areas"].count() == 0)
+	try
 	{
+		inputAreas = args["areas"].as<std::vector<std::string>>();
+	}
+	catch (std::bad_cast &e)
+	{
+		throw std::invalid_argument("Invalid command line argument for dataset");
+	}
+	catch (std::domain_error &e)
+	{
+		// If no areas argument was passed in, return areas vector (empty)
 		return areas;
 	}
 
-	// Retrieve the areas argument like so:
-	auto inputAreas = args["areas"].as<std::vector<std::string>>();
-
-	if (icontains(inputAreas, "all"))
+	for (size_t i = 0; i < inputAreas.size(); i++)
 	{
-		return areas;
-	}
+		std::transform(inputAreas[i].begin(), inputAreas[i].end(),
+					   inputAreas[i].begin(), ::tolower);
 
-	for (unsigned int i = 0; i < inputAreas.size(); i++)
-	{
-		if (!icontains(areas, inputAreas[i].c_str()))
+		// If area value is "all", empty the areas vector and return
+		if (inputAreas[i] == "all")
 		{
-			areas.insert(inputAreas[i]);
+			areas.clear();
+			return areas;
 		}
+
+		areas.insert(inputAreas[i]);
 	}
 
 	return areas;
@@ -366,25 +383,31 @@ std::unordered_set<std::string> BethYw::parseMeasuresArg(
 {
 
 	std::unordered_set<std::string> measures;
+	std::vector<std::string> inputMeasures;
 
-	if (args["measures"].count() == 0)
+	try
 	{
+		inputMeasures = args["measures"].as<std::vector<std::string>>();
+	}
+	catch (std::domain_error &e)
+	{
+		// If no measure argument was passed in, return measure vector (empty)
 		return measures;
 	}
 
-	auto inputMeasures = args["measures"].as<std::vector<std::string>>();
-
-	if (icontains(inputMeasures, "all"))
+	for (size_t i = 0; i < inputMeasures.size(); i++)
 	{
-		return measures;
-	}
+		std::transform(inputMeasures[i].begin(), inputMeasures[i].end(),
+					   inputMeasures[i].begin(), ::tolower);
 
-	for (unsigned int i = 0; i < inputMeasures.size(); i++)
-	{
-		if (!icontains(measures, inputMeasures[i].c_str()))
+		// If measure value is "all", empty the measure vector and return
+		if (inputMeasures[i] == "all")
 		{
-			measures.insert(inputMeasures[i]);
+			measures.clear();
+			return measures;
 		}
+
+		measures.insert(inputMeasures[i]);
 	}
 
 	return measures;
@@ -416,23 +439,44 @@ std::unordered_set<std::string> BethYw::parseMeasuresArg(
 std::tuple<unsigned int, unsigned int> BethYw::parseYearsArg(
 	cxxopts::ParseResult &args)
 {
-	auto inputYears = args["years"].as<std::string>();
+	std::string inputYears;
 
-	// stoi will throw an invalid argument exception if it cant convert
-	if (inputYears.size() == 4)
+	try
 	{
-		return std::make_tuple(stoi(inputYears), stoi(inputYears));
+		inputYears = args["years"].as<std::string>();
 	}
-	else if (inputYears.size() == 9 && inputYears[4] == '-')
+	catch (std::bad_cast &e)
 	{
-		return std::make_tuple(stoi(inputYears.substr(0, 4)), stoi(inputYears.substr(5, 9)));
+		throw std::invalid_argument("Invalid input for years argument");
 	}
-	else if ((inputYears == "0") || (inputYears == "0-0"))
+	catch (std::domain_error &e)
 	{
-		return std::make_tuple(0, 0);
+		throw std::invalid_argument("Invalid input for years argument");
 	}
-	else
+
+	// Strictly check if the argument is formatted correctly
+	try
 	{
+		if (inputYears.size() == 4)
+		{
+			return std::make_tuple(stoi(inputYears), stoi(inputYears));
+		}
+		else if (inputYears.size() == 9 && inputYears[4] == '-')
+		{
+			return std::make_tuple(stoi(inputYears.substr(0, 4)), stoi(inputYears.substr(5, 9)));
+		}
+		else if ((inputYears == "0") || (inputYears == "0-0"))
+		{
+			return std::make_tuple(0, 0);
+		}
+		else
+		{
+			throw std::invalid_argument("Invalid input for years argument");
+		}
+	}
+	catch (std::invalid_argument &e)
+	{
+		// .stoi() might raise an exception
 		throw std::invalid_argument("Invalid input for years argument");
 	}
 }
