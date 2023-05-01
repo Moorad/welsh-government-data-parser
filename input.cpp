@@ -77,7 +77,7 @@ InputFile::InputFile(const std::string &filePath) : InputSource(filePath) {}
 
 std::istream &InputFile::open()
 {
-	// Close stream if open() was called previously
+	// Close stream if open (i.e. open() was called previously)
 	if (file_stream.is_open())
 	{
 		file_stream.close();
@@ -85,7 +85,6 @@ std::istream &InputFile::open()
 
 	file_stream.open(this->getSource());
 
-	// Throw exception if an error occurs while reading
 	if (file_stream.fail())
 	{
 		throw std::runtime_error("InputFile::open: Failed to open file " + this->getSource());

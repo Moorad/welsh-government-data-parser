@@ -115,14 +115,15 @@ const std::string &Area::getName(const std::string &lang) const
 	std::string langValueWelsh = "Powys";
 	area.setName(langCodeWelsh, langValueWelsh);
 */
-void Area::setName(std::string lang, const std::string name)
+void Area::setName(std::string lang, std::string name)
 {
 	if (lang.size() != 3)
 	{
 		throw std::invalid_argument("Area::setName: Language code must be three alphabetical letters only");
 	}
 
-	for (unsigned int i = 0; i < lang.size(); i++)
+	// Check if each character in language code is an alphabetical letter
+	for (size_t i = 0; i < lang.size(); i++)
 	{
 		if (!isalpha(lang[i]))
 		{
@@ -130,7 +131,6 @@ void Area::setName(std::string lang, const std::string name)
 		}
 	}
 
-	// Convert to lowercase
 	std::transform(lang.begin(), lang.end(), lang.begin(), tolower);
 
 	for (auto it = this->names.begin(); it != this->names.end(); ++it)
@@ -222,21 +222,24 @@ void Area::setMeasure(const std::string codename, Measure measure)
 	{
 		if (strcasecmp(it->first.c_str(), codename.c_str()) == 0)
 		{
-			if (it->second.getLabel() != measure.getLabel())
-			{
-				it->second.setLabel(measure.getLabel());
-			}
+			// If an existing measure is found
+			// replace the label and all the years + value
+			it->second.setLabel(measure.getLabel());
 
-			std::vector<int> years = measure.getAllYears();
-			for (unsigned int i = 0; i < years.size(); i++)
+			std::vector<unsigned int> years = measure.getAllYears();
+			for (size_t i = 0; i < years.size(); i++)
 			{
 				it->second.setValue(years[i], measure.getValue(years[i]));
 			}
 
+			// Exit method, dont run insertion code
 			return;
 		}
 	}
 
+	// If the value was not overwritten then we insert
+	// We copy the name and convert it to lowercase (we cant modify original because const)
+	// This has to be lowercase for getMeasure and sorting to work correctly
 	std::string codenameLower(codename.size(), 0);
 	std::transform(codename.begin(), codename.end(), codenameLower.begin(), ::tolower);
 	this->measures.insert(std::make_pair(codenameLower, measure));
@@ -270,7 +273,9 @@ const int Area::size() const
 	return this->measures.size();
 }
 
-const std::vector<std::string> Area::getNames() const noexcept
+// Auxiliary method to get all area names sorted alphabetically
+// e.g. eng and cym
+const std::vector<std::string> Area::getAllNames() const noexcept
 {
 	std::vector<std::string> keys;
 	for (auto it = this->names.begin(); it != this->names.end(); ++it)
@@ -288,6 +293,8 @@ const std::vector<std::string> Area::getNames() const noexcept
 	return keys;
 }
 
+// Auxiliary method to get all measurement codenames sorted alphabetically
+// e.g. pop and dens
 const std::vector<std::string> Area::getAllMeasureCodenames() const noexcept
 {
 	std::vector<std::string> keys;
@@ -339,28 +346,31 @@ const std::vector<std::string> Area::getAllMeasureCodenames() const noexcept
 */
 std::ostream &operator<<(std::ostream &os, Area &area)
 {
-	std::vector<std::string> names = area.getNames();
+	auto areaNames = area.getAllNames();
 
-	if (names.size() == 0)
+	// if no english or welsh name output "Unnamed"
+	if (areaNames.empty())
 	{
 		os << "Unnamed";
 	}
 
-	for (size_t i = 0; i < names.size(); i++)
+	// If english or/and welsh is set, output them
+	for (size_t i = 0; i < areaNames.size(); i++)
 	{
-		os << area.getName(names[i]);
+		os << area.getName(areaNames[i]);
 
-		if (i < names.size() - 1)
+		if (i < areaNames.size() - 1)
 		{
 			os << " / ";
 		}
 	}
 
-	os << std::endl;
+	os << " (" << area.getLocalAuthorityCode() << ")" << std::endl;
 
 	auto measureCodenames = area.getAllMeasureCodenames();
 
-	if (measureCodenames.size() == 0)
+	// If no measurement code (i.e. no measures) output "<no measures>"
+	if (measureCodenames.empty())
 	{
 		os << "<no measures>\n"
 		   << std::endl;
@@ -368,7 +378,7 @@ std::ostream &operator<<(std::ostream &os, Area &area)
 		return os;
 	}
 
-	for (unsigned int i = 0; i < measureCodenames.size(); i++)
+	for (size_t i = 0; i < measureCodenames.size(); i++)
 	{
 		auto measure = area.getMeasure(measureCodenames[i]);
 
@@ -409,8 +419,8 @@ bool operator==(const Area &a1, const Area &a2)
 		return false;
 	}
 
-	std::vector<std::string> names = a1.getNames();
-	for (unsigned int i = 0; i < names.size(); i++)
+	std::vector<std::string> names = a1.getAllNames();
+	for (size_t i = 0; i < names.size(); i++)
 	{
 		try
 		{
@@ -419,14 +429,14 @@ bool operator==(const Area &a1, const Area &a2)
 				return false;
 			}
 		}
-		catch (std::out_of_range &e)
+		catch (const std::out_of_range &e)
 		{
 			return false;
 		}
 	}
 
 	auto measureCodenames = a1.getAllMeasureCodenames();
-	for (unsigned int i = 0; i < measureCodenames.size(); i++)
+	for (size_t i = 0; i < measureCodenames.size(); i++)
 	{
 		try
 		{
@@ -435,7 +445,7 @@ bool operator==(const Area &a1, const Area &a2)
 				return false;
 			}
 		}
-		catch (std::out_of_range &e)
+		catch (const std::out_of_range &e)
 		{
 			return false;
 		}

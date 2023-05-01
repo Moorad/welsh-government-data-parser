@@ -118,4 +118,6 @@ public:
 	friend std::ostream &operator<<(std::ostream &os, Areas &areas);
 };
 
+bool searchStrInAreasFilter(const StringFilterSet *const areasFilter, const std::vector<std::string> &searchStrs);
+
 #endif // AREAS_H

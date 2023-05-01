@@ -77,7 +77,9 @@ void Areas::setArea(const std::string localAuthorityCode, Area area)
 	{
 		if (strcasecmp(it->first.c_str(), localAuthorityCode.c_str()) == 0)
 		{
-			auto names = area.getNames();
+			// If an existing area is found
+			// replace/merge the names and measures
+			auto names = area.getAllNames();
 			for (unsigned int i = 0; i < names.size(); i++)
 			{
 				it->second.setName(names[i], area.getName(names[i]));
@@ -89,6 +91,7 @@ void Areas::setArea(const std::string localAuthorityCode, Area area)
 				it->second.setMeasure(measureCodenames[i], area.getMeasure(measureCodenames[i]));
 			}
 
+			// if overwritten exit method, dont run insertion code
 			return;
 		}
 	}
@@ -123,7 +126,7 @@ Area &Areas::getArea(const std::string &localAuthorityCode)
 {
 	for (auto it = this->container.begin(); it != this->container.end(); ++it)
 	{
-		if (strcmp(it->first.c_str(), localAuthorityCode.c_str()) == 0)
+		if (strcasecmp(it->first.c_str(), localAuthorityCode.c_str()) == 0)
 		{
 			return it->second;
 		}
@@ -211,24 +214,34 @@ void Areas::populateFromAuthorityCodeCSV(
 	const StringFilterSet *const areasFilter)
 {
 	std::string line;
+	std::vector<std::string> headings;
+	size_t pos = 0;
+
 	std::getline(is, line);
 
-	// while ((pos = line.find(",")) != std::string::npos)
-	// {
-	// 	values.push_back(line.substr(0, pos));
-	// 	line.erase(0, pos + 1);
-	// }
-	// values.push_back(line);
+	// Read file headings, if it does not match the headings in cols then file is malformed
+	while ((pos = line.find(",")) != std::string::npos)
+	{
+		headings.push_back(line.substr(0, pos));
+		line.erase(0, pos + 1);
+	}
+	headings.push_back(line);
 
-	// for (size_t i = 0; i < values.size(); i++)
-	// {
-	// 	if (cols.find(values))
-	// }
+	if (headings.size() != 3 ||
+		headings[0] != cols.find(BethYw::AUTH_CODE)->second ||
+		headings[1] != cols.find(BethYw::AUTH_NAME_ENG)->second ||
+		headings[2] != cols.find(BethYw::AUTH_NAME_CYM)->second)
+	{
+		throw std::runtime_error("Malformed file: headings are not correct");
+	}
 
+	std::vector<std::string> values;
 	while (std::getline(is, line))
 	{
-		std::vector<std::string> values;
 		size_t pos = 0;
+		values.clear();
+
+		// Read code, english name and welsh name
 		while ((pos = line.find(",")) != std::string::npos)
 		{
 			values.push_back(line.substr(0, pos));
@@ -238,38 +251,14 @@ void Areas::populateFromAuthorityCodeCSV(
 
 		if (values.size() != 3)
 		{
-			throw std::out_of_range("Too many columns");
+			throw std::out_of_range("Malformed file: incorrect number of columns");
 		}
 
-		bool contains = false;
-		if (!(areasFilter == NULL) && areasFilter->size() > 0)
+		// Check if area code, english name or welsh name is in area filter
+		// If none are found then skip (do not import) this area
+		if (!searchStrInAreasFilter(areasFilter, values))
 		{
-			std::string codeLower(values[0]);
-			std::transform(codeLower.begin(), codeLower.end(), codeLower.begin(), ::tolower);
-
-			std::string engNameLower(values[1]);
-			std::transform(engNameLower.begin(), engNameLower.end(), engNameLower.begin(), ::tolower);
-
-			std::string welshNameLower(values[2]);
-			std::transform(welshNameLower.begin(), welshNameLower.end(), welshNameLower.begin(), ::tolower);
-
-			for (const auto &substring : (*areasFilter))
-			{
-				bool matchInCode = codeLower.find(substring) != std::string::npos;
-				bool matchInEngName = engNameLower.find(substring) != std::string::npos;
-				bool matchInWelshName = welshNameLower.find(substring) != std::string::npos;
-
-				if (matchInCode || matchInEngName || matchInWelshName)
-				{
-					contains = true;
-					break;
-				}
-			}
-
-			if (!contains)
-			{
-				continue;
-			}
+			continue;
 		}
 
 		Area area(values[0]);
@@ -404,6 +393,8 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 		std::string measureCode;
 		std::string measureName;
 
+		// Get measure code if available. Some datasets have a single measure
+		// for the entire dataset and use SINGLE_MEASURE_CODE instead of MEASURE_CODE
 		if (cols.find(BethYw::MEASURE_CODE) != cols.end())
 		{
 			measureCode = data[cols.find(BethYw::MEASURE_CODE)->second];
@@ -418,6 +409,8 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 		unsigned int measureYear = std::stoi(std::string(data[cols.find(BethYw::YEAR)->second]));
 
 		double measureValue;
+		// Convert value to decimal using stod if value is a string,
+		// otherwise use the value without conversion
 		if (data[cols.find(BethYw::VALUE)->second].is_string())
 		{
 			measureValue = std::stod(std::string(data[cols.find(BethYw::VALUE)->second]));
@@ -427,34 +420,15 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 			measureValue = data[cols.find(BethYw::VALUE)->second];
 		}
 
-		bool contains = false;
-		if (!(areasFilter == NULL) && areasFilter->size() > 0)
+		// Check if area code or english name is in area filter
+		// If none are found then skip (do not import) this area
+		if (!searchStrInAreasFilter(areasFilter, {localAuthorityCode, englishName}))
 		{
-			std::string codeLower(localAuthorityCode);
-			std::transform(codeLower.begin(), codeLower.end(), codeLower.begin(), ::tolower);
-
-			std::string engNameLower(englishName);
-			std::transform(engNameLower.begin(), engNameLower.end(), engNameLower.begin(), ::tolower);
-
-			for (const auto &substring : (*areasFilter))
-			{
-				bool matchInCode = codeLower.find(substring) != std::string::npos;
-				bool matchInEngName = engNameLower.find(substring) != std::string::npos;
-
-				if (matchInCode || matchInEngName)
-				{
-					contains = true;
-					break;
-				}
-			}
-
-			if (!contains)
-			{
-				continue;
-			}
+			continue;
 		}
 
-		if (!(measuresFilter == NULL) && measuresFilter->size() > 0)
+		// Check measure filter, skip if measure is not in filter
+		if (measuresFilter != nullptr && !measuresFilter->empty())
 		{
 			transform(measureCode.begin(), measureCode.end(), measureCode.begin(), tolower);
 			if (measuresFilter->find(measureCode) == measuresFilter->end())
@@ -463,7 +437,8 @@ void Areas::populateFromWelshStatsJSON(std::istream &is,
 			}
 		}
 
-		if (!(yearsFilter == NULL) && (std::get<0>(*yearsFilter) != 0 && std::get<1>(*yearsFilter) != 0))
+		// Check year filter, skip if year is not within the filter
+		if (yearsFilter != nullptr && (std::get<0>(*yearsFilter) != 0 && std::get<1>(*yearsFilter) != 0))
 		{
 			if (measureYear < std::get<0>(*yearsFilter) || measureYear > std::get<1>(*yearsFilter))
 			{
@@ -556,14 +531,25 @@ void Areas::populateFromAuthorityByYearCSV(
 	std::string line;
 	std::getline(is, line);
 	std::vector<unsigned int> years;
+	std::size_t pos = 0;
 
-	// Skip the first one
-	line.erase(0, line.find(",") + 1);
+	// Checking if headings are correct
+	if ((pos = line.find(",")) != std::string::npos)
+	{
+		std::string headingAuthCode = line.substr(0, pos);
+
+		if (headingAuthCode != cols.find(BethYw::AUTH_CODE)->second)
+		{
+			throw std::runtime_error("Malformed file: headings are not correct");
+		}
+
+		line.erase(0, pos + 1);
+	}
 
 	std::string measureCode = cols.find(BethYw::SINGLE_MEASURE_CODE)->second;
 	std::string measureName = cols.find(BethYw::SINGLE_MEASURE_NAME)->second;
 
-	std::size_t pos = 0;
+	// Read each year and push it into vector
 	while ((pos = line.find(",")) != std::string::npos)
 	{
 		years.push_back(stoi(line.substr(0, pos)));
@@ -573,19 +559,17 @@ void Areas::populateFromAuthorityByYearCSV(
 
 	while (std::getline(is, line))
 	{
+		// Read local authority code in the current line
+		// and go to the next value after comma
 		std::string localAuthorityCode = line.substr(0, line.find(","));
 		line.erase(0, line.find(",") + 1);
 
-		if (!(areasFilter == NULL) && areasFilter->size() > 0)
+		if (!searchStrInAreasFilter(areasFilter, {localAuthorityCode}))
 		{
-			if (areasFilter->find(localAuthorityCode) == areasFilter->end())
-			{
-				line.clear();
-				continue;
-			}
+			continue;
 		}
 
-		if (!(measuresFilter == NULL) && measuresFilter->size() > 0)
+		if (measuresFilter != nullptr && !measuresFilter->empty())
 		{
 			transform(measureCode.begin(), measureCode.end(), measureCode.begin(), tolower);
 			if (measuresFilter->find(measureCode) == measuresFilter->end())
@@ -595,11 +579,11 @@ void Areas::populateFromAuthorityByYearCSV(
 		}
 
 		Measure measure = Measure(measureCode, measureName);
-		for (unsigned int i = 0; i < years.size(); i++)
+		for (size_t i = 0; i < years.size(); i++)
 		{
 			double value = stod(line.substr(0, line.find(",")));
 
-			if (!(yearsFilter == NULL) && (std::get<0>(*yearsFilter) != 0 && std::get<1>(*yearsFilter) != 0))
+			if (yearsFilter != nullptr && (std::get<0>(*yearsFilter) != 0 && std::get<1>(*yearsFilter) != 0))
 			{
 				if (years[i] < std::get<0>(*yearsFilter) || years[i] > std::get<1>(*yearsFilter))
 				{
@@ -880,25 +864,26 @@ std::string Areas::toJSON() const
 
 	auto areaCodes = this->getAllAuthorityCodes();
 
-	for (unsigned int i = 0; i < areaCodes.size(); i++)
+	for (size_t i = 0; i < areaCodes.size(); i++)
 	{
 		auto area = this->container.find(areaCodes[i])->second;
-
 		auto measureCodenames = area.getAllMeasureCodenames();
 
-		for (unsigned int k = 0; k < measureCodenames.size(); k++)
+		// Loop through all measures available and push each year + value in json object
+		for (size_t k = 0; k < measureCodenames.size(); k++)
 		{
 			auto measure = area.getMeasure(measureCodenames[k]);
 			auto years = measure.getAllYears();
 
-			for (unsigned int t = 0; t < years.size(); t++)
+			for (size_t t = 0; t < years.size(); t++)
 			{
 				j[areaCodes[i]]["measures"][measureCodenames[k]][std::to_string(years[t])] = measure.getValue(years[t]);
 			}
 		}
 
-		auto areaNames = area.getNames();
-		for (unsigned int k = 0; k < areaNames.size(); k++)
+		// Loop through name in the area (i.e. eng and cym) and add the name to json object
+		auto areaNames = area.getAllNames();
+		for (size_t k = 0; k < areaNames.size(); k++)
 		{
 			j[areaCodes[i]]["names"][areaNames[k]] = area.getName(areaNames[k]);
 		}
@@ -907,6 +892,7 @@ std::string Areas::toJSON() const
 	return j.dump();
 }
 
+// Auxiliary method to get all area codes sorted alphabetically
 const std::vector<std::string> Areas::getAllAuthorityCodes() const noexcept
 {
 	std::vector<std::string> keys;
@@ -1035,11 +1021,48 @@ std::ostream &operator<<(std::ostream &os, Areas &areas)
 
 	auto areaCodes = areas.getAllAuthorityCodes();
 
-	for (unsigned int i = 0; i < areaCodes.size(); i++)
+	for (size_t i = 0; i < areaCodes.size(); i++)
 	{
 		auto area = areas.getArea(areaCodes[i]);
 		os << area;
 	}
 
 	return os;
+}
+
+// Auxiliary method to search for anything that matches in area filter.
+// This searches substrings of the filter to implement the extended argument filtering functionality (Task 8 in assignment brief)
+// searchStrs is vector that contains the strings you want to apply the search on. For example apply search on area code, english name and welsh name
+bool searchStrInAreasFilter(const StringFilterSet *const areasFilter, const std::vector<std::string> &searchStrs)
+{
+	// If filter is null or empty, import everything (i.e. return true)
+	if (areasFilter == nullptr || areasFilter->empty())
+	{
+		return true;
+	}
+
+	std::vector<std::string> values;
+	for (size_t i = 0; i < searchStrs.size(); i++)
+	{
+		values.push_back(searchStrs[i].c_str());
+		std::transform(values[i].begin(), values[i].end(), values[i].begin(), tolower);
+	}
+
+	// For every filter string search for a match in the substring
+	// in one of the values in searchStrs
+	for (auto &areaString : *areasFilter)
+	{
+		std::string areasStringLower = areaString.c_str();
+		std::transform(areasStringLower.begin(), areasStringLower.end(), areasStringLower.begin(), tolower);
+
+		for (auto value : values)
+		{
+			if (value.find(areasStringLower) != std::string::npos)
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
 }

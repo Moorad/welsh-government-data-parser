@@ -144,11 +144,10 @@ void Measure::setLabel(const std::string label)
 	...
 	auto value = measure.getValue(1999); // returns 12345678.9
 */
-const double Measure::getValue(const int key) const
+const double Measure::getValue(const unsigned int key) const
 {
 	auto element = this->values.find(key);
 
-	// Return measure if found
 	if (element != this->values.end())
 	{
 		return element->second;
@@ -180,17 +179,15 @@ const double Measure::getValue(const int key) const
 	measure.setValue(1999, 12345678.9);
 */
 
-void Measure::setValue(int year, double value)
+void Measure::setValue(unsigned int year, double value)
 {
 
 	if (this->values.find(year) != this->values.end())
 	{
-		// language exist, reassign
 		this->values[year] = value;
 	}
 	else
 	{
-		// language does not exist, insert
 		this->values.insert(std::make_pair(year, value));
 	}
 }
@@ -237,15 +234,25 @@ const int Measure::size() const noexcept
 */
 const double Measure::getDifference() const noexcept
 {
-	double first_year = this->values.begin()->second;
-	double last_year = std::prev(this->values.end())->second;
+	// If there is no measurement values then return 0 (cant be computed)
+	if (this->size() == 0)
+	{
+		return 0;
+	}
+
+	// Years will sorted numerically by getAllYears
+	auto years = this->getAllYears();
+
+	double first_year = this->getValue(years[0]);
+	double last_year = this->getValue(years[years.size() - 1]);
 
 	try
 	{
 		return std::abs(last_year - first_year);
 	}
-	catch (std::length_error &e)
+	catch (const std::length_error &e)
 	{
+		// return 0 if it cant be computed
 		return 0;
 	}
 }
@@ -269,13 +276,14 @@ const double Measure::getDifference() const noexcept
 */
 const double Measure::getDifferenceAsPercentage() const noexcept
 {
+	// If there is no measurement values then return 0 (cannot be computed)
+	if (this->size() == 0)
+	{
+		return 0;
+	}
+
+	// Years will sorted numerically by getAllYears
 	auto years = this->getAllYears();
-	// Sort numerically
-	std::sort(years.begin(), years.end(),
-			  [](const int &a, const int &b) -> bool
-			  {
-				  return a < b;
-			  });
 
 	double first_year = this->getValue(years[0]);
 	double last_year = this->getValue(years[years.size() - 1]);
@@ -286,7 +294,15 @@ const double Measure::getDifferenceAsPercentage() const noexcept
 		return 0;
 	}
 
-	return (std::abs(last_year - first_year) / first_year) * 100;
+	try
+	{
+		return (std::abs(last_year - first_year) / first_year) * 100;
+	}
+	catch (const std::length_error &e)
+	{
+		// return 0 if it cant be computed
+		return 0;
+	}
 }
 
 /*
@@ -308,6 +324,13 @@ const double Measure::getDifferenceAsPercentage() const noexcept
 const double Measure::getAverage() const noexcept
 {
 	double sum = 0;
+
+	// If there is no measurement values then return 0 (cannot divide by zero)
+	if (this->size() == 0)
+	{
+		return 0;
+	}
+
 	for (auto it = this->values.begin(); it != this->values.end(); it++)
 	{
 		sum += it->second;
@@ -316,18 +339,18 @@ const double Measure::getAverage() const noexcept
 	return sum / this->size();
 }
 
-// getAllYears will display the list of all the years in the container.
-// Used for comparing maps
-const std::vector<int> Measure::getAllYears() const noexcept
+// Auxiliary method to get all years sorted numerically
+// e.g. 1991 and 2010
+const std::vector<unsigned int> Measure::getAllYears() const noexcept
 {
-	std::vector<int> keys;
+	std::vector<unsigned int> keys;
 	for (auto it = this->values.begin(); it != this->values.end(); ++it)
 	{
 		keys.push_back(it->first);
 	}
 
 	std::sort(keys.begin(), keys.end(),
-			  [](const int &a, const int &b) -> bool
+			  [](const unsigned int &a, const unsigned int &b) -> bool
 			  {
 				  return a < b;
 			  });
@@ -376,17 +399,21 @@ std::ostream &operator<<(std::ostream &os, Measure &measure)
 
 	auto years = measure.getAllYears();
 
-	// Sort numerically
-	std::sort(years.begin(), years.end(),
-			  [](const int &a, const int &b) -> bool
-			  {
-				  return a < b;
-			  });
-
 	os << measure.getLabel() << " (" << measure.getCodename() << ")" << std::endl;
 
+	// If no data in measurement output "<no data>"
+	if (years.size() == 0)
+	{
+		os << "<no data>\n"
+		   << std::endl;
+
+		return os;
+	}
+
+	// Calculate number of spaces depending on the number of characters in
+	// year and the corresponding value
 	int space_count;
-	for (unsigned int i = 0; i < years.size(); i++)
+	for (size_t i = 0; i < years.size(); i++)
 	{
 		space_count = std::to_string(measure.getValue(years[i])).size() - std::to_string(years[i]).size();
 
@@ -405,7 +432,7 @@ std::ostream &operator<<(std::ostream &os, Measure &measure)
 	os << std::string(space_count, ' ')
 	   << "% Diff." << std::endl;
 
-	for (unsigned int i = 0; i < years.size(); i++)
+	for (size_t i = 0; i < years.size(); i++)
 	{
 		os << std::to_string(measure.getValue(years[i])) << " ";
 	}
@@ -414,8 +441,7 @@ std::ostream &operator<<(std::ostream &os, Measure &measure)
 	os << std::to_string(measure.getDifference()) << " ";
 	os << std::to_string(measure.getDifferenceAsPercentage()) << std::endl;
 
-	os
-		<< std::endl;
+	os << std::endl;
 
 	return os;
 }
@@ -453,7 +479,7 @@ bool operator==(const Measure &m1, const Measure &m2)
 				return false;
 			}
 		}
-		catch (std::out_of_range &e)
+		catch (const std::out_of_range &e)
 		{
 			return false;
 		}

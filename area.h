@@ -47,7 +47,7 @@ public:
 	Measure &getMeasure(const std::string &key) const;
 	void setMeasure(const std::string codename, Measure measure);
 
-	const std::vector<std::string> getNames() const noexcept;
+	const std::vector<std::string> getAllNames() const noexcept;
 	const std::vector<std::string> getAllMeasureCodenames() const noexcept;
 
 	const int size() const;

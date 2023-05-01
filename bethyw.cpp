@@ -27,6 +27,7 @@
 #include <unordered_set>
 #include <vector>
 #include <ctype.h>
+#include <tuple>
 
 #include "lib_cxxopts.hpp"
 
@@ -34,13 +35,6 @@
 #include "datasets.h"
 #include "bethyw.h"
 #include "input.h"
-
-// Auxiliary functions
-
-// Checks whether a vector contains a certain string (case insensitive)
-bool icontains(const std::vector<std::string> &vec, const char *elem);
-// Checks whether an unordered set contains a certain string (case insensitive)
-bool icontains(const std::unordered_set<std::string> &vec, const char *elem);
 
 /*
   Run Beth Yw?, parsing the command line arguments, importing the data,
@@ -91,8 +85,6 @@ int BethYw::run(int argc, char *argv[])
 							 &areasFilter,
 							 &measuresFilter,
 							 &yearsFilter);
-
-		// std::cout << data.size() << std::endl;
 
 		if (args.count("json"))
 		{
@@ -228,18 +220,16 @@ std::vector<BethYw::InputFileSource> BethYw::parseDatasetsArg(
 	{
 		inputDatasets = args["datasets"].as<std::vector<std::string>>();
 	}
-	catch (std::bad_cast &e)
+	catch (const std::bad_cast &e)
 	{
 		throw std::invalid_argument("Invalid command line argument for dataset");
 	}
-	catch (std::domain_error &e)
+	catch (const std::domain_error &e)
 	{
 		// If no dataset argument was passed in, all datasets should be imported
 		importAll = true;
 	}
 
-	// Loop through each input datasets
-	// If no dataset argument was set inputDatasets.size() will be 0
 	for (size_t i = 0; i < inputDatasets.size(); i++)
 	{
 		// Convert current value to lowercase
@@ -325,11 +315,11 @@ std::unordered_set<std::string> BethYw::parseAreasArg(
 	{
 		inputAreas = args["areas"].as<std::vector<std::string>>();
 	}
-	catch (std::bad_cast &e)
+	catch (const std::bad_cast &e)
 	{
 		throw std::invalid_argument("Invalid command line argument for dataset");
 	}
-	catch (std::domain_error &e)
+	catch (const std::domain_error &e)
 	{
 		// If no areas argument was passed in, return areas vector (empty)
 		return areas;
@@ -337,8 +327,6 @@ std::unordered_set<std::string> BethYw::parseAreasArg(
 
 	for (size_t i = 0; i < inputAreas.size(); i++)
 	{
-		std::transform(inputAreas[i].begin(), inputAreas[i].end(),
-					   inputAreas[i].begin(), ::tolower);
 
 		// If area value is "all", empty the areas vector and return
 		if (inputAreas[i] == "all")
@@ -389,7 +377,7 @@ std::unordered_set<std::string> BethYw::parseMeasuresArg(
 	{
 		inputMeasures = args["measures"].as<std::vector<std::string>>();
 	}
-	catch (std::domain_error &e)
+	catch (const std::domain_error &e)
 	{
 		// If no measure argument was passed in, return measure vector (empty)
 		return measures;
@@ -445,11 +433,11 @@ std::tuple<unsigned int, unsigned int> BethYw::parseYearsArg(
 	{
 		inputYears = args["years"].as<std::string>();
 	}
-	catch (std::bad_cast &e)
+	catch (const std::bad_cast &e)
 	{
 		throw std::invalid_argument("Invalid input for years argument");
 	}
-	catch (std::domain_error &e)
+	catch (const std::domain_error &e)
 	{
 		throw std::invalid_argument("Invalid input for years argument");
 	}
@@ -474,7 +462,7 @@ std::tuple<unsigned int, unsigned int> BethYw::parseYearsArg(
 			throw std::invalid_argument("Invalid input for years argument");
 		}
 	}
-	catch (std::invalid_argument &e)
+	catch (const std::invalid_argument &e)
 	{
 		// .stoi() might raise an exception
 		throw std::invalid_argument("Invalid input for years argument");
@@ -525,7 +513,7 @@ void BethYw::loadAreas(Areas &areas, std::string dir, const StringFilterSet *con
 
 		areas.populate(is, BethYw::AuthorityCodeCSV, BethYw::InputFiles::AREAS.COLS, areasFilter);
 	}
-	catch (std::runtime_error &e)
+	catch (const std::runtime_error &e)
 	{
 		std::stringstream sstream;
 		sstream << "Error importing dataset:" << std::endl
@@ -605,36 +593,10 @@ void BethYw::loadDatasets(Areas &areas,
 
 			areas.populate(is, dataset.PARSER, dataset.COLS, areasFilter, measuresFilter, yearsFilter);
 		}
-		catch (std::runtime_error &e)
+		catch (const std::runtime_error &e)
 		{
 			std::cerr << "Error importing dataset:" << std::endl;
 			std::cerr << e.what() << std::endl;
 		}
 	}
-}
-
-bool icontains(const std::vector<std::string> &vec, const char *elem)
-{
-	for (auto it = vec.begin(); it != vec.end(); ++it)
-	{
-		if (strcasecmp(it->c_str(), elem) == 0)
-		{
-			return true;
-		}
-	}
-
-	return false;
-}
-
-bool icontains(const std::unordered_set<std::string> &vec, const char *elem)
-{
-	for (auto it = vec.begin(); it != vec.end(); ++it)
-	{
-		if (strcasecmp(it->c_str(), elem) == 0)
-		{
-			return true;
-		}
-	}
-
-	return false;
 }
